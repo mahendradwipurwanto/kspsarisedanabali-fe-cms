@@ -1,0 +1,41 @@
+# ── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ── Build output ─────────────────────────────────────────────────────────────
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# ── Secrets — never commit ───────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# ── Tooling / platform ───────────────────────────────────────────────────────
+.vercel
+.turbo
+coverage/
+playwright-report/
+test-results/
+
+# ── Editor / OS ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# ── Next.js ──────────────────────────────────────────────────────────────────
+.next/
+next-env.d.ts

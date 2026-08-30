@@ -1,0 +1,114 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens. Green comes from the koperasi's logo; the neutrals are biased
+ * slightly warm-green so they read as chosen rather than inherited greys.
+ */
+@theme {
+  --color-brand-50: #f1f7ec;
+  --color-brand-100: #e4f2d9;
+  --color-brand-200: #c9e5b5;
+  --color-brand-300: #a5d287;
+  --color-brand-400: #7cba57;
+  --color-brand-500: #5b9638;
+  --color-brand-600: #4e8b2c;
+  --color-brand-700: #3d6f22;
+  --color-brand-800: #31581d;
+  --color-brand-900: #274818;
+
+  --color-ink-50: #f6f8fa;
+  --color-ink-100: #eef1f5;
+  --color-ink-200: #e7eaf0;
+  --color-ink-300: #cbd5e1;
+  --color-ink-400: #94a3b8;
+  --color-ink-500: #64748b;
+  --color-ink-600: #52607a;
+  --color-ink-700: #334155;
+  --color-ink-800: #1f2a44;
+  --color-ink-900: #16203a;
+
+  --color-gold-500: #d9a521;
+  --color-gold-100: #fbf1d8;
+
+  --font-sans: 'Plus Jakarta Sans Fallback', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --radius-card: 0.875rem;
+}
+
+:root {
+  --surface: #ffffff;
+  --surface-alt: var(--color-ink-50);
+  --text: var(--color-ink-900);
+  --text-muted: var(--color-ink-600);
+  --border: var(--color-ink-200);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  background: var(--color-ink-50);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* The audit flagged sections overflowing on mobile. This is the backstop. */
+  overflow-x: hidden;
+}
+
+/* Visible keyboard focus everywhere — WCAG 2.2 AA. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+}
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-brand-700);
+  color: white;
+  border-radius: 0.5rem;
+}
+
+/* Rich text from the CMS. Headings are constrained to h2/h3 by the editor, so
+   there is no h1 rule here by design. */
+.prose-ksp { color: var(--text); line-height: 1.75; }
+.prose-ksp > * + * { margin-top: 1.15em; }
+.prose-ksp h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; margin-top: 2em; text-wrap: balance; }
+.prose-ksp h3 { font-size: 1.2rem; font-weight: 650; margin-top: 1.6em; text-wrap: balance; }
+.prose-ksp p { color: var(--text-muted); }
+.prose-ksp a { color: var(--color-brand-700); text-decoration: underline; text-underline-offset: 3px; }
+.prose-ksp a:hover { color: var(--color-brand-800); }
+.prose-ksp ul, .prose-ksp ol { padding-left: 1.35rem; color: var(--text-muted); }
+.prose-ksp ul { list-style: disc; }
+.prose-ksp ol { list-style: decimal; }
+.prose-ksp li + li { margin-top: 0.4em; }
+.prose-ksp strong { color: var(--text); font-weight: 650; }
+.prose-ksp img { border-radius: var(--radius-card); }
+
+/* Tabular figures wherever rupiah amounts stack in columns. */
+.tnum { font-variant-numeric: tabular-nums; }
+
+@keyframes ksp-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-fade-up { animation: ksp-fade-up 0.4s ease-out both; }
