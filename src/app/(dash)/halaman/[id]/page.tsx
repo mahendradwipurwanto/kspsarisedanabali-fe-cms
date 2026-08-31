@@ -6,15 +6,41 @@ import { BLOCK_LIST, getBlock, defaultPropsFor, type SeoCheck } from '@/contract
 import { api, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { BlockForm } from '@/components/BlockForm'
+import { BlockList } from '@/components/BlockList'
+import { PreviewPanel } from '@/components/PreviewPanel'
 import { Button, Card, Field, inputCls, Alert, Spinner, Pill, Modal, PageHeader } from '@/components/ui'
 
 interface Block { id?: string; type: string; props: Record<string, unknown>; isVisible: boolean }
 interface Page {
   id: string; title: string; slug: string; status: string; isSystem: boolean
-  seo: Record<string, string>; blocks: Block[]
+  seo: Record<string, string | boolean | undefined>; blocks: Block[]
 }
 
 const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3005'
+
+/**
+ * Character counter that colours by the range that actually matters. A bare
+ * "37/60" tells an editor nothing about whether 37 is a problem.
+ */
+function Counter({ value, ideal, max }: { value: number; ideal: [number, number]; max: number }) {
+  const tone =
+    value === 0 ? 'text-ink-400'
+      : value > max ? 'text-[#c4443a]'
+        : value < ideal[0] || value > ideal[1] ? 'text-[#a9781a]'
+          : 'text-brand-700'
+  const note =
+    value === 0 ? 'belum diisi'
+      : value > max ? 'terlalu panjang, akan terpotong'
+        : value < ideal[0] ? `kurang ${ideal[0] - value} karakter`
+          : value > ideal[1] ? 'sedikit panjang'
+            : 'panjang pas'
+  return (
+    <span className={`mt-1 flex items-center justify-between text-xs tabular-nums ${tone}`}>
+      <span>{note}</span>
+      <span>{value}/{ideal[1]}</span>
+    </span>
+  )
+}
 
 export default function PageEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -25,6 +51,8 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
   const [seo, setSeo] = useState<{ checks: SeoCheck[]; score: number } | null>(null)
   const [active, setActive] = useState(0)
   const [picker, setPicker] = useState(false)
+  const [preview, setPreview] = useState(false)
+  const [seoTab, setSeoTab] = useState<'google' | 'sosial'>('google')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ tone: 'green' | 'red' | 'amber'; text: string } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -74,13 +102,31 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
     setPicker(false)
   }
 
-  function move(i: number, dir: -1 | 1) {
-    const j = i + dir
-    if (j < 0 || j >= blocks.length) return
+  /** Move a block to an arbitrary index — a drag can span several positions,
+   *  so swapping neighbours is not enough. */
+  function reorder(from: number, to: number) {
     const copy = [...blocks]
-    ;[copy[i], copy[j]] = [copy[j]!, copy[i]!]
+    const [moved] = copy.splice(from, 1)
+    if (!moved) return
+    copy.splice(to, 0, moved)
     setBlocks(copy)
-    setActive(j)
+    // Follow the block the editor just moved rather than the position.
+    setActive(to)
+  }
+
+  function duplicate(i: number) {
+    const source = blocks[i]
+    if (!source) return
+    const copy = [...blocks]
+    // Drop the id so the API inserts a new row instead of updating the original.
+    copy.splice(i + 1, 0, { type: source.type, props: structuredClone(source.props), isVisible: source.isVisible })
+    setBlocks(copy)
+    setActive(i + 1)
+  }
+
+  function removeAt(i: number) {
+    setBlocks(blocks.filter((_, j) => j !== i))
+    setActive((a) => Math.max(0, Math.min(a, blocks.length - 2)))
   }
 
   async function save(publish = false) {
@@ -120,6 +166,7 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
         action={
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => router.push('/halaman')}>Kembali</Button>
+            <Button variant="secondary" onClick={() => setPreview(true)}>Pratinjau</Button>
             <Button variant="secondary" onClick={() => window.open(`${LP}/${page.slug === '/' ? '' : page.slug}`, '_blank')}>
               Lihat di website
             </Button>
@@ -142,32 +189,22 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
             <span className="text-xs font-bold uppercase tracking-wider text-ink-400">Susunan Blok</span>
             <Button size="sm" variant="secondary" onClick={() => setPicker(true)}>+ Blok</Button>
           </div>
-          <ul className="grid gap-1">
-            {blocks.map((block, i) => {
-              const def = getBlock(block.type)
-              return (
-                <li key={i}>
-                  <div
-                    className={`flex items-center gap-1.5 rounded-lg px-2 py-2 ${i === active ? 'bg-brand-50 ring-1 ring-inset ring-brand-200' : 'hover:bg-ink-50'}`}
-                  >
-                    <button onClick={() => setActive(i)} className="min-w-0 flex-1 text-left">
-                      <span className={`block truncate text-sm font-medium ${i === active ? 'text-brand-700' : 'text-ink-800'}`}>
-                        {def?.label ?? block.type}
-                      </span>
-                      {def?.headingLevel ? (
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-ink-400">{def.headingLevel}</span>
-                      ) : null}
-                    </button>
-                    <span className="flex shrink-0 flex-col">
-                      <button onClick={() => move(i, -1)} disabled={i === 0} aria-label="Naikkan" className="px-1 text-[10px] text-ink-400 hover:text-ink-700 disabled:opacity-30">▲</button>
-                      <button onClick={() => move(i, 1)} disabled={i === blocks.length - 1} aria-label="Turunkan" className="px-1 text-[10px] text-ink-400 hover:text-ink-700 disabled:opacity-30">▼</button>
-                    </span>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-          {!blocks.length ? <p className="px-2 py-6 text-center text-sm text-ink-500">Belum ada blok.</p> : null}
+          <BlockList
+            blocks={blocks}
+            active={active}
+            onSelect={setActive}
+            onReorder={reorder}
+            onDuplicate={duplicate}
+            onRemove={removeAt}
+            onToggleVisible={(i) => setBlocks(blocks.map((b, j) => (j === i ? { ...b, isVisible: !b.isVisible } : b)))}
+          />
+          {!blocks.length ? (
+            <p className="px-2 py-6 text-center text-sm text-ink-500">Belum ada blok.</p>
+          ) : (
+            <p className="mt-2 px-1 text-[11px] leading-relaxed text-ink-400">
+              Tarik ⠿ untuk mengubah urutan, atau tekan Ctrl + ↑ / ↓ saat blok dipilih.
+            </p>
+          )}
         </Card>
 
         {/* ─── editor ─── */}
@@ -183,14 +220,72 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
               </Field>
             </div>
             <div className="mt-4 grid gap-4">
+              <Field
+                label="Kata kunci utama"
+                hint="Satu frasa yang paling ingin dicari orang untuk menemukan halaman ini — misalnya “pinjaman koperasi karangasem”. Dipakai untuk memeriksa penempatan, tidak ditampilkan di website."
+              >
+                <input
+                  value={String(page.seo.focusKeyword ?? '')}
+                  onChange={(e) => patch({ seo: { ...page.seo, focusKeyword: e.target.value } })}
+                  placeholder="pinjaman koperasi karangasem"
+                  className={inputCls}
+                />
+              </Field>
+
               <Field label="Judul untuk Google (title tag)" hint="Idealnya 50–60 karakter. Ini yang muncul sebagai judul di hasil pencarian." required>
-                <input value={page.seo.metaTitle ?? ''} onChange={(e) => patch({ seo: { ...page.seo, metaTitle: e.target.value } })} className={inputCls} />
-                <span className="mt-1 block text-right text-xs tabular-nums text-ink-400">{(page.seo.metaTitle ?? '').length}/60</span>
+                <input value={String(page.seo.metaTitle ?? '')} onChange={(e) => patch({ seo: { ...page.seo, metaTitle: e.target.value } })} className={inputCls} />
+                <Counter value={(String(page.seo.metaTitle ?? '')).length} ideal={[50, 60]} max={70} />
               </Field>
+
               <Field label="Deskripsi untuk Google (meta description)" hint="Idealnya 120–158 karakter. Ini kalimat di bawah judul pada hasil pencarian." required>
-                <textarea rows={3} value={page.seo.metaDescription ?? ''} onChange={(e) => patch({ seo: { ...page.seo, metaDescription: e.target.value } })} className={inputCls} />
-                <span className="mt-1 block text-right text-xs tabular-nums text-ink-400">{(page.seo.metaDescription ?? '').length}/158</span>
+                <textarea rows={3} value={String(page.seo.metaDescription ?? '')} onChange={(e) => patch({ seo: { ...page.seo, metaDescription: e.target.value } })} className={inputCls} />
+                <Counter value={(String(page.seo.metaDescription ?? '')).length} ideal={[120, 158]} max={180} />
               </Field>
+
+              <details className="rounded-lg border border-ink-200 p-3">
+                <summary className="cursor-pointer text-sm font-semibold text-ink-800">Pengaturan lanjutan</summary>
+                <div className="mt-4 grid gap-4">
+                  <Field
+                    label="Gambar untuk WhatsApp & media sosial (og:image)"
+                    hint="Tampil saat tautan halaman ini dibagikan. Ukuran ideal 1200×630 piksel."
+                  >
+                    <input
+                      value={String(page.seo.ogImage ?? '')}
+                      onChange={(e) => patch({ seo: { ...page.seo, ogImage: e.target.value } })}
+                      placeholder="https://…"
+                      className={inputCls}
+                    />
+                  </Field>
+
+                  <Field
+                    label="Alamat kanonik (canonical URL)"
+                    hint="Kosongkan saja kecuali isi halaman ini sama dengan halaman lain. Diisi salah justru menghilangkan halaman ini dari Google."
+                  >
+                    <input
+                      value={String(page.seo.canonicalUrl ?? '')}
+                      onChange={(e) => patch({ seo: { ...page.seo, canonicalUrl: e.target.value } })}
+                      placeholder="https://…"
+                      className={inputCls}
+                    />
+                  </Field>
+
+                  <label className="flex items-start gap-3 rounded-lg bg-ink-50 p-3">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(page.seo.noindex)}
+                      onChange={(e) => patch({ seo: { ...page.seo, noindex: e.target.checked } })}
+                      className="mt-0.5 size-4"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-ink-800">Sembunyikan dari Google (noindex)</span>
+                      <span className="block text-xs leading-relaxed text-ink-500">
+                        Halaman tetap bisa dibuka lewat tautan langsung, tapi tidak akan muncul di hasil pencarian.
+                        Biarkan mati untuk halaman biasa.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </details>
             </div>
           </Card>
 
@@ -242,14 +337,53 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
             <Pill tone={scoreTone}>{seo?.score ?? 0}%</Pill>
           </div>
 
-          <div className="mb-5 rounded-lg border border-ink-200 bg-ink-50 p-3">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-ink-400">Pratinjau hasil Google</p>
-            <p className="mt-1.5 truncate text-[15px] text-[#1a0dab]">{page.seo.metaTitle || page.title || 'Judul halaman'}</p>
-            <p className="truncate text-xs text-[#006621]">{LP.replace(/^https?:\/\//, '')}/{page.slug === '/' ? '' : page.slug}</p>
-            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-ink-600">
-              {page.seo.metaDescription || 'Deskripsi belum diisi — Google akan memilih kalimat acak dari halaman.'}
-            </p>
+          <div className="mb-3 flex rounded-lg border border-ink-200 p-0.5" role="tablist" aria-label="Pratinjau tampilan">
+            {([['google', 'Google'], ['sosial', 'WhatsApp']] as const).map(([key, label]) => (
+              <button
+                key={key}
+                role="tab"
+                aria-selected={seoTab === key}
+                onClick={() => setSeoTab(key)}
+                className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors ${
+                  seoTab === key ? 'bg-brand-600 text-white' : 'text-ink-600 hover:bg-ink-50'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
+
+          {seoTab === 'google' ? (
+            <div className="mb-5 rounded-lg border border-ink-200 bg-ink-50 p-3">
+              <p className="mt-1.5 truncate text-[15px] text-[#1a0dab]">{String(page.seo.metaTitle || page.title || 'Judul halaman')}</p>
+              <p className="truncate text-xs text-[#006621]">{LP.replace(/^https?:\/\//, '')}/{page.slug === '/' ? '' : page.slug}</p>
+              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-ink-600">
+                {String(page.seo.metaDescription || 'Deskripsi belum diisi — Google akan memilih kalimat acak dari halaman.')}
+              </p>
+            </div>
+          ) : (
+            /* What a link to this page looks like pasted into a chat — the way
+               most of this koperasi's traffic is actually shared. */
+            <div className="mb-5 overflow-hidden rounded-lg border border-ink-200">
+              {page.seo.ogImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={String(page.seo.ogImage)} alt="" className="aspect-[1200/630] w-full bg-ink-100 object-cover" />
+              ) : (
+                <div className="grid aspect-[1200/630] w-full place-items-center bg-ink-100 px-4 text-center text-[11px] leading-relaxed text-ink-400">
+                  Belum ada gambar — WhatsApp akan menampilkan kartu polos tanpa gambar.
+                </div>
+              )}
+              <div className="bg-ink-50 p-3">
+                <p className="text-[10px] uppercase tracking-wide text-ink-400">{LP.replace(/^https?:\/\//, '')}</p>
+                <p className="mt-0.5 line-clamp-2 text-[13px] font-semibold text-ink-900">
+                  {String(page.seo.metaTitle || page.title || 'Judul halaman')}
+                </p>
+                <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-ink-500">
+                  {String(page.seo.metaDescription || 'Deskripsi belum diisi.')}
+                </p>
+              </div>
+            </div>
+          )}
 
           <ul className="grid gap-2.5">
             {(seo?.checks ?? []).map((check) => (
@@ -273,6 +407,14 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
           </p>
         </Card>
       </div>
+
+      {preview ? (
+        <PreviewPanel
+          pageId={page.id}
+          draft={{ title: page.title, slug: page.slug, seo: page.seo, blocks: page.blocks }}
+          onClose={() => setPreview(false)}
+        />
+      ) : null}
 
       <Modal open={picker} onClose={() => setPicker(false)} title="Tambah Blok" wide>
         <div className="grid gap-5">
