@@ -2,7 +2,7 @@
 
 import { use, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { BLOCK_LIST, getBlock, defaultPropsFor, type SeoCheck } from '@mahendradwipurwanto/ksp-contracts'
+import { BLOCK_LIST, getBlock, defaultPropsFor, type SeoCheck } from '@/contracts'
 import { api, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { BlockForm } from '@/components/BlockForm'

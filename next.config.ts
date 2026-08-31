@@ -29,7 +29,6 @@ const config: NextConfig = {
   reactStrictMode: true,
   turbopack: { root: lockfileRoot(here) },
   poweredByHeader: false,
-  transpilePackages: ['@mahendradwipurwanto/ksp-contracts'],
   async headers() {
     return [
       {

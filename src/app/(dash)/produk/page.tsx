@@ -1,6 +1,6 @@
 'use client'
 
-import { formatRupiahShort } from '@mahendradwipurwanto/ksp-contracts'
+import { formatRupiahShort } from '@/contracts'
 import { ResourceList, Pill } from '@/components/ResourceList'
 
 interface Product {
