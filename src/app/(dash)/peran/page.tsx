@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { PERMISSION_GROUPS, PERMISSIONS } from '@mahendradwipurwanto/ksp-contracts'
+import { PERMISSION_GROUPS, PERMISSIONS } from '@/contracts'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { Card, PageHeader, Pill, Spinner, Button, Modal, Field, inputCls, Alert } from '@/components/ui'

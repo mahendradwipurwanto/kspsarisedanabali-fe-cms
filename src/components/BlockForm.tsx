@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { FieldDef, FieldMap } from '@mahendradwipurwanto/ksp-contracts'
+import type { FieldDef, FieldMap } from '@/contracts'
 import { uploadFile } from '@/lib/api'
 import { Button, inputCls, Field } from './ui'
 
@@ -9,7 +9,7 @@ import { Button, inputCls, Field } from './ui'
  * Schema-driven form renderer.
  *
  * Every input here is generated from the block's `fields` definition in
- * @mahendradwipurwanto/ksp-contracts. Add a field to the schema and it appears in the CMS with a
+ * the vendored contracts in src/contracts. Add a field to the schema and it appears in the CMS with a
  * label, hint, and validation — no form code to write or keep in sync.
  */
 export function BlockForm({

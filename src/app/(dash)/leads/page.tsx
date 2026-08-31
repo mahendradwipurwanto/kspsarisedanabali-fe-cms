@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { LEAD_STATUSES, LEAD_STATUS_LABELS, waLink, formatRupiah } from '@mahendradwipurwanto/ksp-contracts'
+import { LEAD_STATUSES, LEAD_STATUS_LABELS, waLink, formatRupiah } from '@/contracts'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { Card, PageHeader, Pill, Spinner, Empty, Button, Modal, Field, inputCls, Alert, fmtDateTime } from '@/components/ui'
