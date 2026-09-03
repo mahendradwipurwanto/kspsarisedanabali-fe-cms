@@ -1,31 +1,25 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Smartphone, Tablet, Monitor, RefreshCw, ExternalLink, X } from 'lucide-react'
 import { api } from '@/lib/api'
-import { Button, Spinner, Alert } from '@/components/ui'
+import { Button, Spinner, Alert, IconButton, Kbd } from '@/components/ui'
 
 const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3005'
 
-/**
- * Widths chosen from the devices in the analytics, not from round numbers:
- * 390 is the modal iPhone width, 768 the iPad portrait, and 1280 a laptop.
- */
+/** Widths from the devices in the analytics: iPhone, iPad portrait, laptop. */
 const DEVICES = [
-  { key: 'mobile', label: 'Ponsel', width: 390, icon: '▯' },
-  { key: 'tablet', label: 'Tablet', width: 768, icon: '▭' },
-  { key: 'desktop', label: 'Desktop', width: 1280, icon: '▬' },
+  { key: 'mobile', label: 'Ponsel', width: 390, icon: Smartphone },
+  { key: 'tablet', label: 'Tablet', width: 768, icon: Tablet },
+  { key: 'desktop', label: 'Desktop', width: 1280, icon: Monitor },
 ] as const
 
 type DeviceKey = (typeof DEVICES)[number]['key']
 
 /**
- * Renders the page being edited — including unsaved changes — by asking the API
- * for a short-lived preview token and pointing an iframe at the landing page's
- * own route for it.
- *
- * The preview therefore runs the real components against the real data. A
- * re-implementation inside the CMS would be quicker to build and would drift
- * from the live site precisely when it matters: the moment before publishing.
+ * Renders the page being edited, unsaved changes included, by asking the API
+ * for a short-lived preview token and pointing an iframe at the website's own
+ * route for it. The preview runs the real components against the real data.
  */
 export function PreviewPanel({
   pageId, draft, onClose,
@@ -41,8 +35,6 @@ export function PreviewPanel({
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
-  // Held in a ref so `refresh` can stay referentially stable while the editor
-  // keeps typing — otherwise every keystroke would re-run the effect below.
   const draftRef = useRef(draft)
   draftRef.current = draft
 
@@ -62,7 +54,6 @@ export function PreviewPanel({
 
   useEffect(() => { void refresh() }, [refresh])
 
-  // Escape closes, matching every other overlay in the CMS.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
@@ -73,67 +64,68 @@ export function PreviewPanel({
   const url = token ? `${LP}/pratinjau/${token}` : null
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-ink-900/70 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Pratinjau halaman">
-      <header className="flex flex-wrap items-center gap-3 border-b border-ink-200 bg-white px-4 py-3">
-        <h2 className="font-bold text-ink-900">Pratinjau</h2>
+    <div className="fixed inset-0 z-50 flex flex-col bg-ink-950" role="dialog" aria-modal="true" aria-label="Pratinjau halaman">
+      <header className="grid-dark flex flex-wrap items-center gap-3 border-b border-white/10 bg-ink-900 px-4 py-2.5 text-white">
+        <h2 className="text-[14px] font-bold">Pratinjau</h2>
+        <span className="mono hidden text-[11px] text-white/40 sm:inline">{draft.slug === '/' ? '/' : `/${draft.slug}`}</span>
 
-        <div className="flex rounded-lg border border-ink-200 p-0.5" role="group" aria-label="Ukuran layar">
+        <div className="ml-2 flex rounded-[var(--radius-input)] border border-white/10 bg-white/[0.04] p-0.5" role="group" aria-label="Ukuran layar">
           {DEVICES.map((d) => (
             <button
               key={d.key}
               type="button"
               onClick={() => setDevice(d.key)}
               aria-pressed={device === d.key}
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                device === d.key ? 'bg-brand-600 text-white' : 'text-ink-600 hover:bg-ink-50'
+              className={`inline-flex items-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${
+                device === d.key ? 'bg-white text-ink-900' : 'text-white/60 hover:text-white'
               }`}
             >
-              {d.label}
-              <span className="ml-1.5 tabular-nums opacity-60">{d.width}</span>
+              <d.icon className="size-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">{d.label}</span>
+              <span className="mono tnum text-[10px] opacity-60">{d.width}</span>
             </button>
           ))}
         </div>
 
-        <span className="ml-auto flex items-center gap-3">
+        <span className="ml-auto flex items-center gap-2">
           {refreshedAt ? (
-            <span className="text-xs tabular-nums text-ink-400">
-              Diperbarui {refreshedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            <span className="mono hidden text-[11px] tabular-nums text-white/40 md:inline">
+              diperbarui {refreshedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           ) : null}
-          <Button size="sm" variant="secondary" onClick={() => void refresh()} disabled={loading}>
-            {loading ? 'Memuat…' : 'Muat ulang'}
+          <Button size="sm" variant="secondary" onClick={() => void refresh()} loading={loading} className="!border-white/15 !bg-white/[0.06] !text-white hover:!bg-white/10">
+            <RefreshCw className="size-3.5" /> Muat ulang
           </Button>
           {url ? (
-            <Button size="sm" variant="secondary" onClick={() => window.open(url, '_blank', 'noopener')}>
-              Buka di tab baru
+            <Button size="sm" variant="secondary" onClick={() => window.open(url, '_blank', 'noopener')} className="!border-white/15 !bg-white/[0.06] !text-white hover:!bg-white/10">
+              <ExternalLink className="size-3.5" /> Tab baru
             </Button>
           ) : null}
-          <Button size="sm" onClick={onClose}>Tutup</Button>
+          <IconButton label="Tutup pratinjau" onClick={onClose} className="text-white/70 hover:!bg-white/10 hover:!text-white"><X className="size-4" /></IconButton>
         </span>
       </header>
 
-      <div className="flex-1 overflow-auto bg-ink-100 p-4">
+      <div className="scroll-thin flex-1 overflow-auto p-4">
         {error ? (
           <div className="mx-auto max-w-lg pt-10"><Alert>{error}</Alert></div>
         ) : !url ? (
-          <div className="pt-20"><Spinner label="Menyiapkan pratinjau…" /></div>
+          <div className="pt-20 text-white/70"><Spinner label="Menyiapkan pratinjau…" /></div>
         ) : (
-          <div className="mx-auto h-full bg-white shadow-lg transition-[max-width] duration-300" style={{ maxWidth: width }}>
+          <div className="mx-auto h-full overflow-hidden rounded-[var(--radius-card)] bg-white shadow-[var(--shadow-lift)] ring-1 ring-white/10 transition-[max-width] duration-300 [transition-timing-function:var(--ease-settle)]" style={{ maxWidth: width }}>
             <iframe
               ref={iframeRef}
               src={url}
               title="Pratinjau halaman"
               className="h-full w-full"
-              /* The preview is our own origin's sibling app, but it renders
-                 editor-supplied content — keep it from reaching back in. */
               sandbox="allow-scripts allow-same-origin allow-popups"
             />
           </div>
         )}
       </div>
 
-      <footer className="border-t border-ink-200 bg-white px-4 py-2 text-center text-xs text-ink-500">
-        Menampilkan perubahan yang belum disimpan. Tautan pratinjau berlaku 30 menit dan tidak terbaca mesin pencari.
+      <footer className="flex items-center justify-center gap-3 border-t border-white/10 bg-ink-900 px-4 py-2 text-center text-[11.5px] text-white/45">
+        Menampilkan perubahan yang belum disimpan. Tautan berlaku 30 menit dan tidak terbaca mesin pencari.
+        <span className="hidden items-center gap-1 sm:flex"><Kbd>Esc</Kbd> tutup</span>
       </footer>
     </div>
   )

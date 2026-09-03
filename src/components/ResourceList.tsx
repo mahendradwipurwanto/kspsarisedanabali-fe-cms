@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
-import { Card, PageHeader, Spinner, Empty, Button, Modal, Field, inputCls, Alert, Pill } from './ui'
+import { Card, PageHeader, Spinner, Empty, Button, Modal, Field, inputCls, selectCls, Alert, Pill } from './ui'
 
 export interface Column<T> {
   header: string
@@ -71,7 +71,7 @@ export function ResourceList<T extends { id: string }>({
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
-              <thead className="border-b border-ink-200 bg-ink-50 text-left text-xs font-bold uppercase tracking-wider text-ink-500">
+              <thead className="border-b border-line bg-paper text-left text-[12px] font-semibold text-ink-500">
                 <tr>
                   {columns.map((c) => (
                     <th key={c.header} className={`px-5 py-3 ${c.className ?? ''}`}>{c.header}</th>
@@ -79,9 +79,9 @@ export function ResourceList<T extends { id: string }>({
                   {canWrite && editFields ? <th className="px-5 py-3" /> : null}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-200">
+              <tbody className="divide-y divide-line">
                 {rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-ink-50">
+                  <tr key={row.id} className="hover:bg-paper">
                     {columns.map((c) => (
                       <td key={c.header} className={`px-5 py-3.5 ${c.className ?? ''}`}>{c.cell(row)}</td>
                     ))}
@@ -178,7 +178,7 @@ function ResourceEditor({
                   placeholder="Satu baris untuk satu poin"
                 />
               ) : f.type === 'select' ? (
-                <select value={String(v ?? '')} onChange={(e) => set(f.name, e.target.value)} className={inputCls}>
+                <select value={String(v ?? '')} onChange={(e) => set(f.name, e.target.value)} className={selectCls}>
                   <option value="">— pilih —</option>
                   {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>

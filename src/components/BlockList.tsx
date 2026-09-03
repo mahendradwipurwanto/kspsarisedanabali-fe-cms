@@ -1,22 +1,20 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { GripVertical, Eye, EyeOff, Copy, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import { getBlock } from '@/contracts'
+import { IconButton } from './ui'
 
 export interface EditorBlock { id?: string; type: string; props: Record<string, unknown>; isVisible: boolean }
 
 /**
  * Re-orderable list of the blocks on a page.
  *
- * Drag and drop uses the native HTML5 API rather than a library: the list is
- * short, vertical, and single-container, which is the one case the native API
- * handles well — and it keeps a drag-and-drop dependency out of a CMS whose
- * whole point is being maintainable by whoever inherits it.
- *
- * Dragging is never the only way to reorder. Every row keeps ↑ ↓ buttons and
- * responds to Ctrl/Cmd + arrow keys when focused, because a pointer-only
- * reorder is unusable with a keyboard or a screen reader — and staff on a
- * laptop trackpad routinely find dragging fiddly too.
+ * Native HTML5 drag and drop: the list is short, vertical and single-container,
+ * which is the one case the native API handles well. Dragging is never the
+ * only way to reorder: every row keeps ↑ ↓ buttons and answers Ctrl/Cmd +
+ * arrows when focused, because a pointer-only reorder is unusable with a
+ * keyboard or a screen reader.
  */
 export function BlockList({
   blocks, active, onSelect, onReorder, onDuplicate, onRemove, onToggleVisible,
@@ -31,8 +29,6 @@ export function BlockList({
 }) {
   const [dragging, setDragging] = useState<number | null>(null)
   const [over, setOver] = useState<number | null>(null)
-  // Guards against the drop firing on a stale index when the pointer leaves and
-  // re-enters the list mid-drag.
   const lastOver = useRef<number | null>(null)
 
   function move(from: number, to: number) {
@@ -61,7 +57,6 @@ export function BlockList({
             onDragStart={(e) => {
               setDragging(i)
               e.dataTransfer.effectAllowed = 'move'
-              // Firefox refuses to start a drag without data on the transfer.
               e.dataTransfer.setData('text/plain', String(i))
             }}
             onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOver(i); lastOver.current = i }}
@@ -73,55 +68,41 @@ export function BlockList({
               setDragging(null); setOver(null); lastOver.current = null
               if (!Number.isNaN(from)) move(from, to)
             }}
-            className={`rounded-lg transition-[box-shadow,opacity,transform] ${isDragging ? 'opacity-40' : ''} ${
-              isOver ? 'ring-2 ring-brand-400' : ''
-            }`}
+            className={`relative min-w-0 rounded-[var(--radius-tile)] transition-[opacity] ${isDragging ? 'opacity-40' : ''}`}
           >
+            {isOver ? <span aria-hidden="true" className="absolute -top-[3px] inset-x-1 h-[2px] rounded-full bg-gold-400" /> : null}
             <div
-              className={`group/blk flex items-center gap-1 rounded-lg px-1.5 py-2 ${
-                isActive ? 'bg-brand-50 ring-1 ring-inset ring-brand-200' : 'hover:bg-ink-50'
-              }`}
+              className={`group/blk flex min-w-0 items-center gap-1 overflow-hidden rounded-[var(--radius-tile)] border py-1.5 pl-1 pr-1.5 transition-colors ${
+                isActive ? 'border-ink-900 bg-ink-900 text-white' : 'border-transparent hover:border-line hover:bg-white'
+              } ${!block.isVisible && !isActive ? 'opacity-60' : ''}`}
             >
-              <span
-                aria-hidden="true"
-                title="Tarik untuk memindahkan"
-                className="cursor-grab select-none px-1 text-ink-300 active:cursor-grabbing"
-              >
-                ⠿
+              <span aria-hidden="true" title="Tarik untuk memindahkan" className={`cursor-grab select-none px-0.5 active:cursor-grabbing ${isActive ? 'text-white/40' : 'text-ink-300'}`}>
+                <GripVertical className="size-4" />
               </span>
 
-              <button
-                type="button"
-                onClick={() => onSelect(i)}
-                onKeyDown={(e) => onKeyDown(e, i)}
-                aria-current={isActive}
-                className="min-w-0 flex-1 text-left"
-              >
-                <span className={`flex items-center gap-1.5 truncate text-sm font-medium ${isActive ? 'text-brand-700' : 'text-ink-800'}`}>
-                  {!block.isVisible ? <span title="Disembunyikan" aria-label="Disembunyikan">🚫</span> : null}
+              <button type="button" onClick={() => onSelect(i)} onKeyDown={(e) => onKeyDown(e, i)} aria-current={isActive} className="min-w-0 flex-1 overflow-hidden text-left">
+                <span className={`flex min-w-0 items-center gap-1.5 text-[13px] font-semibold ${isActive ? 'text-white' : 'text-ink-800'}`}>
+                  {!block.isVisible ? <EyeOff className={`size-3.5 shrink-0 ${isActive ? 'text-gold-300' : 'text-ink-400'}`} aria-label="Disembunyikan" /> : null}
                   <span className="truncate">{def?.label ?? block.type}</span>
                 </span>
-                <span className="mt-0.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-ink-400">
-                  <span className="tabular-nums">{String(i + 1).padStart(2, '0')}</span>
+                <span className={`mono mt-0.5 flex min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap text-[10px] ${isActive ? 'text-white/45' : 'text-ink-400'}`}>
+                  <span className="tnum">{String(i + 1).padStart(2, '0')}</span>
                   {def?.headingLevel ? <span>{def.headingLevel}</span> : null}
+                  <span className="truncate">{def?.category?.toLowerCase()}</span>
                 </span>
               </button>
 
-              <span className="flex shrink-0 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover/blk:opacity-100">
-                <button type="button" onClick={() => onToggleVisible(i)} title={block.isVisible ? 'Sembunyikan' : 'Tampilkan'}
-                  aria-label={block.isVisible ? 'Sembunyikan blok' : 'Tampilkan blok'}
-                  className="px-1 text-xs text-ink-400 hover:text-ink-700">{block.isVisible ? '👁' : '🚫'}</button>
-                <button type="button" onClick={() => onDuplicate(i)} title="Duplikat" aria-label="Duplikat blok"
-                  className="px-1 text-xs text-ink-400 hover:text-ink-700">⧉</button>
-                <button type="button" onClick={() => onRemove(i)} title="Hapus" aria-label="Hapus blok"
-                  className="px-1 text-xs text-ink-400 hover:text-[#c4443a]">✕</button>
+              <span className={`shrink-0 items-center focus-within:flex group-hover/blk:flex ${isActive ? 'flex [&_button]:text-white/60 [&_button:hover]:bg-white/10 [&_button:hover]:text-white' : 'hidden'}`}>
+                <IconButton size="sm" label={block.isVisible ? 'Sembunyikan blok' : 'Tampilkan blok'} onClick={() => onToggleVisible(i)}>
+                  {block.isVisible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+                </IconButton>
+                <IconButton size="sm" label="Duplikat blok" onClick={() => onDuplicate(i)}><Copy className="size-3.5" /></IconButton>
+                <IconButton size="sm" label="Hapus blok" onClick={() => onRemove(i)} className="hover:!text-red-600"><Trash2 className="size-3.5" /></IconButton>
               </span>
 
-              <span className="flex shrink-0 flex-col">
-                <button type="button" onClick={() => move(i, i - 1)} disabled={i === 0} aria-label="Naikkan blok"
-                  className="px-1 text-[10px] leading-tight text-ink-400 hover:text-ink-700 disabled:opacity-30">▲</button>
-                <button type="button" onClick={() => move(i, i + 1)} disabled={i === blocks.length - 1} aria-label="Turunkan blok"
-                  className="px-1 text-[10px] leading-tight text-ink-400 hover:text-ink-700 disabled:opacity-30">▼</button>
+              <span className={`flex shrink-0 flex-col ${isActive ? '[&_button]:text-white/50 [&_button:hover]:text-white' : ''}`}>
+                <button type="button" onClick={() => move(i, i - 1)} disabled={i === 0} aria-label="Naikkan blok" className="grid size-4 place-items-center text-ink-400 hover:text-ink-900 disabled:opacity-30"><ChevronUp className="size-3.5" /></button>
+                <button type="button" onClick={() => move(i, i + 1)} disabled={i === blocks.length - 1} aria-label="Turunkan blok" className="grid size-4 place-items-center text-ink-400 hover:text-ink-900 disabled:opacity-30"><ChevronDown className="size-3.5" /></button>
               </span>
             </div>
           </li>

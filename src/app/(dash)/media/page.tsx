@@ -48,7 +48,7 @@ export default function MediaPage() {
           <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
             <input value={alt} onChange={(e) => setAlt(e.target.value)} placeholder="Keterangan gambar, contoh: Kantor Cabang Rendang tampak depan" className={inputCls} />
             <input type="file" accept="image/*" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPick(f) }}
-              className="rounded-lg border border-dashed border-ink-300 bg-ink-50 px-3 py-2.5 text-sm file:mr-3 file:rounded file:border-0 file:bg-brand-600 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-white" />
+              className="rounded-[var(--radius-input)] border border-dashed border-line-strong bg-paper px-3 py-2 text-sm text-ink-500 file:mr-3 file:rounded-[6px] file:border-0 file:bg-ink-900 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white" />
           </div>
           {busy ? <p className="mt-2 text-sm text-ink-500">Mengunggah…</p> : null}
           {error ? <div className="mt-3"><Alert>{error}</Alert></div> : null}

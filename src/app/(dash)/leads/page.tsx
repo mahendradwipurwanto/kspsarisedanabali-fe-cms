@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, waLink, formatRupiah } from '@/contracts'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
-import { Card, PageHeader, Pill, Spinner, Empty, Button, Modal, Field, inputCls, Alert, fmtDateTime } from '@/components/ui'
+import { Card, PageHeader, Pill, Spinner, Empty, Button, Modal, Field, inputCls, selectCls, Alert, fmtDateTime } from '@/components/ui'
 
 interface Lead {
   id: string; name: string; phone: string; email?: string | null
@@ -85,7 +85,7 @@ function LeadsView() {
             placeholder="Cari nama atau nomor WhatsApp…"
             className={`${inputCls} max-w-xs`}
           />
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className={`${inputCls} max-w-[200px]`}>
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className={`${selectCls} max-w-[200px]`}>
             <option value="">Semua status</option>
             {LEAD_STATUSES.map((s) => (
               <option key={s} value={s}>{LEAD_STATUS_LABELS[s]}</option>
@@ -100,7 +100,7 @@ function LeadsView() {
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">
-              <thead className="border-b border-ink-200 bg-ink-50 text-left text-xs font-bold uppercase tracking-wider text-ink-500">
+              <thead className="border-b border-line bg-paper text-left text-[12px] font-semibold text-ink-500">
                 <tr>
                   <th className="px-5 py-3">Nama & Produk</th>
                   <th className="px-5 py-3">Cabang</th>
@@ -110,9 +110,9 @@ function LeadsView() {
                   <th className="px-5 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-200">
+              <tbody className="divide-y divide-line">
                 {rows.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-ink-50">
+                  <tr key={lead.id} className="hover:bg-paper">
                     <td className="px-5 py-3.5">
                       <button onClick={() => setSelected(lead)} className="text-left">
                         <span className="block font-semibold text-ink-900 hover:text-brand-700">{lead.name}</span>
@@ -210,7 +210,7 @@ function LeadDetail({ lead, onClose, onSaved }: { lead: Lead | null; onClose: ()
       {can('leads:update') ? (
         <div className="mt-5 grid gap-4 border-t border-ink-200 pt-5">
           <Field label="Ubah status">
-            <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputCls}>
+            <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectCls}>
               {LEAD_STATUSES.map((s) => (
                 <option key={s} value={s}>{LEAD_STATUS_LABELS[s]}</option>
               ))}

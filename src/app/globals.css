@@ -1,13 +1,37 @@
 @import 'tailwindcss';
 
 /*
- * Design tokens. Green comes from the koperasi's logo; the neutrals are biased
- * slightly warm-green so they read as chosen rather than inherited greys.
+ * Console tokens. Same ink / green / gold system as the website, so what an
+ * editor sees in the console is what the visitor sees on the page. The
+ * `brand-*` names are kept as aliases of the green ramp so nothing breaks.
  */
 @theme {
-  --color-brand-50: #f1f7ec;
+  --color-ink-50:  #f6f8fa;
+  --color-ink-100: #eceff3;
+  --color-ink-200: #dce1e6;
+  --color-ink-300: #b9c2cd;
+  --color-ink-400: #8a97a8;
+  --color-ink-500: #5f6f85;
+  --color-ink-600: #3b4d68;
+  --color-ink-700: #263a55;
+  --color-ink-800: #16263d;
+  --color-ink-900: #0f1b2d;
+  --color-ink-950: #0a1220;
+
+  --color-green-50:  #f1f7ec;
+  --color-green-100: #e4f2d9;
+  --color-green-200: #c5e2ae;
+  --color-green-300: #a5d287;
+  --color-green-400: #7cba57;
+  --color-green-500: #5b9638;
+  --color-green-600: #4e8b2c;
+  --color-green-700: #3d6f22;
+  --color-green-800: #31581d;
+  --color-green-900: #274818;
+
+  --color-brand-50:  #f1f7ec;
   --color-brand-100: #e4f2d9;
-  --color-brand-200: #c9e5b5;
+  --color-brand-200: #c5e2ae;
   --color-brand-300: #a5d287;
   --color-brand-400: #7cba57;
   --color-brand-500: #5b9638;
@@ -16,40 +40,50 @@
   --color-brand-800: #31581d;
   --color-brand-900: #274818;
 
-  --color-ink-50: #f6f8fa;
-  --color-ink-100: #eef1f5;
-  --color-ink-200: #e7eaf0;
-  --color-ink-300: #cbd5e1;
-  --color-ink-400: #94a3b8;
-  --color-ink-500: #64748b;
-  --color-ink-600: #52607a;
-  --color-ink-700: #334155;
-  --color-ink-800: #1f2a44;
-  --color-ink-900: #16203a;
+  --color-gold-50:  #fdf8e8;
+  --color-gold-100: #faefc6;
+  --color-gold-200: #f5df94;
+  --color-gold-300: #efc15c;
+  --color-gold-400: #dfae3c;
+  --color-gold-500: #c2911f;
+  --color-gold-600: #9a7016;
+  --color-gold-700: #6b4f0d;
 
-  --color-gold-500: #d9a521;
-  --color-gold-100: #fbf1d8;
+  --color-red-50:  #fdf1f0;
+  --color-red-100: #f8d9d6;
+  --color-red-600: #c4443a;
+  --color-red-700: #a3352c;
 
-  --font-sans: 'Plus Jakarta Sans Fallback', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --color-paper: #f7f8f5;
+  --color-line: #dce1e6;
+  --color-line-strong: #c4ccd5;
 
-  --radius-card: 0.875rem;
+  --font-sans: var(--font-jakarta), 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: var(--font-mono-jb), 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-card: 10px;
+  --radius-tile: 8px;
+  --radius-input: 8px;
+
+  --shadow-card: 0 1px 2px rgb(15 27 45 / 0.04);
+  --shadow-lift: 0 12px 32px -12px rgb(15 27 45 / 0.28), 0 2px 6px -2px rgb(15 27 45 / 0.08);
+
+  --ease-swift: cubic-bezier(0.2, 0, 0, 1);
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root {
   --surface: #ffffff;
-  --surface-alt: var(--color-ink-50);
+  --surface-alt: var(--color-paper);
   --text: var(--color-ink-900);
-  --text-muted: var(--color-ink-600);
-  --border: var(--color-ink-200);
+  --text-muted: var(--color-ink-500);
+  --border: var(--color-line);
+  --sidebar-w: 248px;
 }
 
-html {
-  scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
-}
+html { -webkit-text-size-adjust: 100%; }
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -58,45 +92,58 @@ html {
 }
 
 body {
-  background: var(--color-ink-50);
+  background: var(--color-paper);
   color: var(--text);
   font-family: var(--font-sans);
+  font-feature-settings: 'ss01', 'cv11';
   -webkit-font-smoothing: antialiased;
-  /* The audit flagged sections overflowing on mobile. This is the backstop. */
   overflow-x: hidden;
 }
 
-/* Visible keyboard focus everywhere — WCAG 2.2 AA. */
+/* Visible keyboard focus everywhere. */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-brand-600);
+  outline: 2px solid var(--color-green-600);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-.skip-link {
-  position: absolute;
-  left: -9999px;
-  top: 0;
-  z-index: 100;
+/* Thin scrollbars inside panes; the console is dense and the OS default is loud. */
+.scroll-thin { scrollbar-width: thin; scrollbar-color: var(--color-ink-300) transparent; }
+.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: var(--color-ink-300); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+
+/* ── Surfaces ─────────────────────────────────────────────────────────── */
+.surface { background: #fff; border: 1px solid var(--color-line); border-radius: var(--radius-card); box-shadow: var(--shadow-card); }
+.surface-dark { background: var(--color-ink-900); color: #fff; border-radius: var(--radius-card); border: 1px solid rgb(255 255 255 / 0.06); }
+
+/* Engineering grid on dark panels: 32px hairlines, faint. */
+.grid-dark {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.045) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
-.skip-link:focus {
-  left: 1rem;
-  top: 1rem;
-  padding: 0.75rem 1rem;
-  background: var(--color-brand-700);
-  color: white;
-  border-radius: 0.5rem;
+/* The same grid on paper, for the login ground. */
+.grid-light {
+  background-image:
+    linear-gradient(to right, rgb(15 27 45 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(15 27 45 / 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
-/* Rich text from the CMS. Headings are constrained to h2/h3 by the editor, so
-   there is no h1 rule here by design. */
+/* ── Type ─────────────────────────────────────────────────────────────── */
+.t-label { font-size: 12px; font-weight: 600; color: var(--color-ink-500); letter-spacing: 0.01em; }
+.mono { font-family: var(--font-mono); font-size: 0.92em; letter-spacing: -0.01em; }
+.tnum { font-variant-numeric: tabular-nums; }
+.figure { font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+
+/* Rich text from the CMS (used by previews). Headings are constrained to h2/h3. */
 .prose-ksp { color: var(--text); line-height: 1.75; }
 .prose-ksp > * + * { margin-top: 1.15em; }
 .prose-ksp h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; margin-top: 2em; text-wrap: balance; }
 .prose-ksp h3 { font-size: 1.2rem; font-weight: 650; margin-top: 1.6em; text-wrap: balance; }
 .prose-ksp p { color: var(--text-muted); }
-.prose-ksp a { color: var(--color-brand-700); text-decoration: underline; text-underline-offset: 3px; }
-.prose-ksp a:hover { color: var(--color-brand-800); }
+.prose-ksp a { color: var(--color-green-700); text-decoration: underline; text-underline-offset: 3px; }
 .prose-ksp ul, .prose-ksp ol { padding-left: 1.35rem; color: var(--text-muted); }
 .prose-ksp ul { list-style: disc; }
 .prose-ksp ol { list-style: decimal; }
@@ -104,11 +151,42 @@ body {
 .prose-ksp strong { color: var(--text); font-weight: 650; }
 .prose-ksp img { border-radius: var(--radius-card); }
 
-/* Tabular figures wherever rupiah amounts stack in columns. */
-.tnum { font-variant-numeric: tabular-nums; }
-
-@keyframes ksp-fade-up {
-  from { opacity: 0; transform: translateY(8px); }
+/* ── Motion ───────────────────────────────────────────────────────────── */
+@keyframes ksp-rise {
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
 }
-.animate-fade-up { animation: ksp-fade-up 0.4s ease-out both; }
+.rise { animation: ksp-rise 0.4s var(--ease-settle) both; }
+.animate-fade-up { animation: ksp-rise 0.4s var(--ease-settle) both; }
+
+@keyframes ksp-pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.pulse-dot { animation: ksp-pulse-dot 1.8s ease-in-out infinite; }
+
+/* ── Sonner toasts, styled to the console ─────────────────────────────── */
+[data-sonner-toaster] { --font-family: var(--font-sans); }
+[data-sonner-toast] {
+  border-radius: var(--radius-card) !important;
+  border: 1px solid rgb(255 255 255 / 0.08) !important;
+  background: var(--color-ink-900) !important;
+  color: #fff !important;
+  box-shadow: var(--shadow-lift) !important;
+}
+[data-sonner-toast] [data-description] { color: rgb(255 255 255 / 0.6) !important; }
+[data-sonner-toast][data-type='success'] [data-icon] { color: var(--color-green-300); }
+[data-sonner-toast][data-type='error'] [data-icon] { color: #f0a29b; }
+[data-sonner-toast][data-type='warning'] [data-icon] { color: var(--color-gold-300); }
+
+/* ── cmdk palette ─────────────────────────────────────────────────────── */
+[cmdk-group-heading] { font-size: 11px; font-weight: 600; color: var(--color-ink-400); padding: 10px 12px 6px; letter-spacing: 0.02em; }
+[cmdk-item] { border-radius: 6px; }
+[cmdk-item][data-selected='true'] { background: var(--color-paper); color: var(--color-ink-900); }
+
+/* Native select with a drawn chevron; the popup stays native, the trigger matches the inputs. */
+.select-chev {
+  appearance: none;
+  padding-right: 2.25rem;
+  background-repeat: no-repeat;
+  background-position: right 0.8rem center;
+  background-size: 11px 8px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'><path d='M1 1.5 6 6.5l5-5' stroke='%235f6f85' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");
+}

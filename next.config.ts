@@ -36,6 +36,8 @@ const config: NextConfig = {
   reactStrictMode: true,
   turbopack: { root: nextPackageRoot(here) },
   poweredByHeader: false,
+  // Next 16 otherwise writes AGENTS.md / CLAUDE.md into the repo on first dev run.
+  agentRules: false,
   async headers() {
     return [
       {
