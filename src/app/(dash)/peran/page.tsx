@@ -1,68 +1,115 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { ShieldCheck, Lock } from 'lucide-react'
+import { toast } from 'sonner'
 import { PERMISSION_GROUPS, PERMISSIONS } from '@/contracts'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
-import { Card, PageHeader, Pill, Spinner, Button, Modal, Field, inputCls, Alert } from '@/components/ui'
+import { PageHeader, Pill, Spinner, Empty, Button, Modal, Field, inputCls, Alert } from '@/components/ui'
+import { DataGrid, useGridRows, useGridView, type GridField } from '@/components/DataGrid'
+import { GridToolbar } from '@/components/GridToolbar'
 
 interface Role {
   id: string; key: string; name: string; description?: string | null
   permissions: string[]; isLocked: boolean; userCount: number
 }
 
+const FIELDS: GridField<Role>[] = [
+  { key: 'name', label: 'Nama peran', type: 'text', width: 220, required: true },
+  { key: 'key', label: 'Kunci', type: 'readonly', width: 170 },
+  { key: 'description', label: 'Keterangan', type: 'text', width: 340 },
+  { key: 'permissions', label: 'Hak akses', type: 'readonly', width: 130, get: (r) => `${r.permissions.length} hak akses` },
+  { key: 'userCount', label: 'Pengguna', type: 'number', width: 110, readOnly: true },
+  {
+    key: 'isLocked', label: 'Terkunci', type: 'readonly', width: 120,
+    get: (r) => (r.isLocked ? 'Ya' : 'Tidak'),
+    render: (r) => (r.isLocked ? <Pill tone="grey"><Lock className="size-3" /> Sistem</Pill> : <span className="text-ink-300">—</span>),
+  },
+]
+
 /**
- * Custom role builder.
+ * Roles as a table, with the permission builder behind the expand button.
  *
  * Permissions are checkboxes grouped by module with a plain-Indonesian
- * description each, so a non-technical administrator can compose a role without
- * knowing what `leads:read:branch` means.
+ * description each, so an administrator can compose a role without knowing
+ * what `leads:read:branch` means.
  */
 export default function RolesPage() {
   const { can } = useAuth()
   const [roles, setRoles] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)
+  const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<Role | 'new' | null>(null)
+  const view = useGridView('peran')
 
-  const load = () =>
-    api.get<{ data: Role[] }>('/roles').then((r) => setRoles(r.data)).catch(() => {}).finally(() => setLoading(false))
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const r = await api.get<{ data: Role[] }>('/roles')
+      setRoles(r.data)
+    } catch (e) {
+      toast.error('Gagal memuat peran', { description: (e as Error).message })
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  useEffect(() => { void load() }, [])
+  useEffect(() => { void load() }, [load])
 
-  if (loading) return <Spinner />
+  const visible = useGridRows(roles, FIELDS, query, view.sort)
+  const canManage = can('roles:manage')
+
+  async function edit(rowId: string, key: string, value: unknown) {
+    const role = roles.find((r) => r.id === rowId)
+    if (!role) return
+    if (role.isLocked) return toast.warning('Peran sistem tidak bisa diubah')
+    const previous = (role as unknown as Record<string, unknown>)[key]
+    setRoles((list) => list.map((r) => (r.id === rowId ? { ...r, [key]: value } : r)))
+    try {
+      await api.patch(`/roles/${rowId}`, { [key]: value })
+    } catch (e) {
+      setRoles((list) => list.map((r) => (r.id === rowId ? { ...r, [key]: previous } : r)))
+      toast.error('Perubahan tidak tersimpan', { description: (e as Error).message })
+    }
+  }
 
   return (
     <>
       <PageHeader
         title="Peran & Hak Akses"
         subtitle="Tentukan apa yang boleh dilakukan setiap peran. Perubahan berlaku saat pengguna masuk berikutnya."
-        action={can('roles:manage') ? <Button onClick={() => setEditing('new')}>+ Peran Baru</Button> : undefined}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {roles.map((role) => (
-          <Card key={role.id} className="p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="flex items-center gap-2 font-bold text-ink-900">
-                  {role.name}
-                  {role.isLocked ? <Pill tone="grey">Terkunci</Pill> : null}
-                </h2>
-                {role.description ? <p className="mt-1 text-sm leading-relaxed text-ink-500">{role.description}</p> : null}
-              </div>
-              {can('roles:manage') ? (
-                <Button size="sm" variant="secondary" onClick={() => setEditing(role)}>
-                  {role.isLocked ? 'Lihat' : 'Ubah'}
-                </Button>
-              ) : null}
-            </div>
-            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-ink-200 pt-4 text-sm text-ink-500">
-              <Pill tone="green">{role.permissions.length} hak akses</Pill>
-              <Pill tone="grey">{role.userCount} pengguna</Pill>
-            </div>
-          </Card>
-        ))}
-      </div>
+      <GridToolbar
+        fields={FIELDS}
+        view={view}
+        query={query}
+        onQuery={setQuery}
+        canWrite={canManage}
+        createLabel="Peran baru"
+        onCreate={() => setEditing('new')}
+      />
+
+      {loading ? (
+        <Spinner />
+      ) : (
+        <DataGrid<Role>
+          fields={FIELDS}
+          rows={visible}
+          rowHeight={view.rowHeight}
+          hidden={view.hidden}
+          widths={view.widths}
+          onWidths={view.setWidths}
+          sort={view.sort}
+          onSort={view.setSort}
+          canWrite={canManage}
+          onEdit={canManage ? ({ rowId, key, value }) => void edit(rowId, key, value) : undefined}
+          onExpand={setEditing}
+          onCreate={() => setEditing('new')}
+          emptyState={<Empty icon={<ShieldCheck className="size-5" />} title="Belum ada peran" body="Peran bawaan akan muncul setelah data awal dimasukkan." />}
+        />
+      )}
 
       {editing ? (
         <RoleEditor
@@ -91,6 +138,7 @@ function RoleEditor({ role, onClose, onSaved }: { role: Role | null; onClose: ()
     try {
       if (role) await api.patch(`/roles/${role.id}`, { name, description, permissions: selected })
       else await api.post('/roles', { name, description, permissions: selected })
+      toast.success(role ? 'Peran diperbarui' : 'Peran baru dibuat')
       onSaved()
     } catch (e) {
       setError((e as Error).message)
@@ -100,7 +148,21 @@ function RoleEditor({ role, onClose, onSaved }: { role: Role | null; onClose: ()
   }
 
   return (
-    <Modal open onClose={onClose} title={role ? `Peran: ${role.name}` : 'Peran Baru'} wide>
+    <Modal
+      open
+      onClose={onClose}
+      title={role ? role.name : 'Peran baru'}
+      description={role ? `${selected.length} hak akses · ${role.userCount} pengguna` : 'Pilih hak akses yang boleh dipakai peran ini.'}
+      size="lg"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>Tutup</Button>
+          {!locked ? (
+            <Button variant="dark" onClick={() => void save()} loading={busy} disabled={!name || !selected.length}>Simpan peran</Button>
+          ) : null}
+        </>
+      }
+    >
       <div className="grid gap-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Nama peran" required>
@@ -111,34 +173,35 @@ function RoleEditor({ role, onClose, onSaved }: { role: Role | null; onClose: ()
           </Field>
         </div>
 
-        {locked ? <Alert tone="amber">Peran sistem — hak aksesnya dikunci dan tidak bisa diubah.</Alert> : null}
+        {locked ? <Alert tone="amber">Peran sistem. Hak aksesnya dikunci dan tidak bisa diubah.</Alert> : null}
 
         <div>
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-semibold text-ink-800">Hak akses ({selected.length} dipilih)</span>
+          <div className="mb-2.5 flex items-center justify-between">
+            <span className="text-[13px] font-semibold text-ink-700">Hak akses <span className="tnum font-normal text-ink-400">({selected.length} dipilih)</span></span>
             {!locked ? (
-              <span className="flex gap-2">
-                <Button size="sm" variant="ghost" onClick={() => setSelected(Object.keys(PERMISSIONS))}>Pilih semua</Button>
-                <Button size="sm" variant="ghost" onClick={() => setSelected([])}>Kosongkan</Button>
+              <span className="flex gap-1">
+                <Button size="xs" variant="ghost" onClick={() => setSelected(Object.keys(PERMISSIONS))}>Pilih semua</Button>
+                <Button size="xs" variant="ghost" onClick={() => setSelected([])}>Kosongkan</Button>
               </span>
             ) : null}
           </div>
 
-          <div className="max-h-[45vh] overflow-y-auto rounded-lg border border-ink-200">
+          <div className="scroll-thin max-h-[45vh] overflow-y-auto rounded-[var(--radius-card)] border border-line">
             {PERMISSION_GROUPS.map((group) => {
               const allOn = group.permissions.every((p) => selected.includes(p))
               return (
-                <div key={group.label} className="border-b border-ink-200 last:border-0">
-                  <div className="flex items-center justify-between bg-ink-50 px-4 py-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-ink-500">{group.label}</span>
+                <div key={group.label} className="border-b border-line last:border-0">
+                  <div className="flex items-center justify-between bg-paper px-4 py-2">
+                    <span className="text-[12px] font-semibold text-ink-500">{group.label}</span>
                     {!locked ? (
                       <button
+                        type="button"
                         onClick={() =>
                           setSelected((s) =>
                             allOn ? s.filter((p) => !group.permissions.includes(p as never)) : [...new Set([...s, ...group.permissions])],
                           )
                         }
-                        className="text-xs font-semibold text-brand-700 hover:underline"
+                        className="text-[12px] font-semibold text-green-700 hover:underline"
                       >
                         {allOn ? 'Hapus semua' : 'Pilih semua'}
                       </button>
@@ -147,17 +210,17 @@ function RoleEditor({ role, onClose, onSaved }: { role: Role | null; onClose: ()
                   <ul>
                     {group.permissions.map((permission) => (
                       <li key={permission}>
-                        <label className="flex cursor-pointer items-start gap-3 px-4 py-2.5 hover:bg-brand-50/50">
+                        <label className="flex cursor-pointer items-start gap-3 px-4 py-2.5 hover:bg-paper">
                           <input
                             type="checkbox"
                             disabled={locked}
                             checked={selected.includes(permission)}
                             onChange={() => toggle(permission)}
-                            className="mt-0.5 size-4 shrink-0 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
+                            className="mt-0.5 size-4 shrink-0 accent-[#0f1b2d]"
                           />
-                          <span>
-                            <span className="block text-sm text-ink-800">{PERMISSIONS[permission]}</span>
-                            <code className="block text-[11px] text-ink-400">{permission}</code>
+                          <span className="min-w-0">
+                            <span className="block text-[13px] text-ink-800">{PERMISSIONS[permission]}</span>
+                            <span className="mono block text-[11px] text-ink-400">{permission}</span>
                           </span>
                         </label>
                       </li>
@@ -170,15 +233,6 @@ function RoleEditor({ role, onClose, onSaved }: { role: Role | null; onClose: ()
         </div>
 
         {error ? <Alert>{error}</Alert> : null}
-
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>Tutup</Button>
-          {!locked ? (
-            <Button onClick={() => void save()} disabled={busy || !name || !selected.length}>
-              {busy ? 'Menyimpan…' : 'Simpan Peran'}
-            </Button>
-          ) : null}
-        </div>
       </div>
     </Modal>
   )

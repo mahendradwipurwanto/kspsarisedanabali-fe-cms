@@ -1,9 +1,25 @@
 'use client'
 
-import { ResourceList, Pill } from '@/components/ResourceList'
-import { fmtDate } from '@/components/ui'
+import { Newspaper } from 'lucide-react'
+import { ResourceList, type GridField } from '@/components/ResourceList'
 
-interface Post { id: string; title: string; slug: string; status: string; publishedAt: string | null; excerpt?: string | null }
+interface Post {
+  id: string; title: string; slug: string; status: string; publishedAt: string | null
+  excerpt?: string | null; content?: string | null; coverImage?: string | null
+}
+
+const FIELDS: GridField<Post>[] = [
+  { key: 'title', label: 'Judul', type: 'text', width: 300, required: true, secondary: (r) => `/${r.slug}` },
+  {
+    key: 'status', label: 'Status', type: 'select', width: 120,
+    options: [{ value: 'draft', label: 'Draf', tone: 'grey' }, { value: 'review', label: 'Review', tone: 'amber' }, { value: 'published', label: 'Terbit', tone: 'green' }],
+  },
+  { key: 'publishedAt', label: 'Tanggal terbit', type: 'date', width: 150 },
+  { key: 'coverImage', label: 'Sampul', type: 'image', width: 80 },
+  { key: 'excerpt', label: 'Ringkasan', type: 'longtext', width: 320, hint: 'Muncul di kartu berita dan hasil pencarian Google.' },
+  { key: 'slug', label: 'Slug', type: 'text', width: 200, required: true, hint: 'Huruf kecil dan tanda hubung.' },
+  { key: 'content', label: 'Isi berita (HTML)', type: 'longtext', rows: 12, panelOnly: true, hint: 'Gunakan <p>, <h2>, <ul>, <li>, <strong>, <a>.' },
+]
 
 export default function PostsPage() {
   return (
@@ -11,20 +27,12 @@ export default function PostsPage() {
       title="Berita"
       subtitle="Berita dan artikel yang tampil di halaman /berita."
       endpoint="/posts"
+      viewKey="berita"
       writePermission="posts:write"
+      emptyIcon={<Newspaper className="size-5" />}
       emptyBody="Tulis berita pertama agar pengunjung melihat aktivitas koperasi."
-      columns={[
-        { header: 'Judul', cell: (r) => (<><span className="block font-semibold text-ink-900">{r.title}</span><span className="block text-xs text-ink-500">/{r.slug}</span></>) },
-        { header: 'Status', cell: (r) => <Pill tone={r.status === 'published' ? 'green' : 'grey'}>{r.status === 'published' ? 'Terbit' : 'Draf'}</Pill> },
-        { header: 'Tanggal terbit', cell: (r) => fmtDate(r.publishedAt) },
-      ]}
-      editFields={[
-        { name: 'title', label: 'Judul berita', required: true },
-        { name: 'slug', label: 'Alamat halaman (slug)', required: true, hint: 'Huruf kecil dan tanda hubung.' },
-        { name: 'excerpt', label: 'Ringkasan', type: 'textarea', hint: 'Muncul di kartu berita dan hasil pencarian Google.' },
-        { name: 'content', label: 'Isi berita (HTML)', type: 'textarea', hint: 'Gunakan <p>, <h2>, <ul>, <li>, <strong>, <a>.' },
-        { name: 'status', label: 'Status', type: 'select', options: [{ value: 'draft', label: 'Draf' }, { value: 'published', label: 'Terbit' }] },
-      ]}
+      fields={FIELDS}
+      recordTitle={(r) => r.title}
     />
   )
 }
