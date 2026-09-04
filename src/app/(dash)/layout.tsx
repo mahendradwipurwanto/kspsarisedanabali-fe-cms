@@ -9,7 +9,7 @@ import { Spinner, Kbd } from '@/components/ui'
 import { CommandPalette } from '@/components/CommandPalette'
 import { NAV, NAV_GROUPS } from '@/components/nav'
 
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3005'
+const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 
 function Mark({ className = '' }: { className?: string }) {
   return (

@@ -16,7 +16,7 @@ interface MediaItem {
   size: number; width?: number | null; height?: number | null; createdAt?: string
 }
 
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3005'
+const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 const kb = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.round(n / 1024)} KB`)
 
 const FIELDS: TableField<MediaItem>[] = [

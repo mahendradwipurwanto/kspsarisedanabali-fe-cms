@@ -7,7 +7,7 @@ import { login } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { Button, Field, inputCls, Alert, Kbd } from '@/components/ui'
 
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3005'
+const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 
 function Mark({ className = '' }: { className?: string }) {
   return (

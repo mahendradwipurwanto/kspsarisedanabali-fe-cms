@@ -8,7 +8,7 @@ import { api } from '@/lib/api'
 import { Kbd } from './ui'
 import type { NavItem } from './nav'
 
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3005'
+const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 
 interface PageHit { id: string; title: string; slug: string; status: string }
 

@@ -6,7 +6,7 @@ import { Card, PageHeader, Spinner, Button, Field, inputCls } from '@/components
 
 interface SeoDefaults { titleTemplate: string; defaultTitle: string; defaultDescription: string }
 interface Social { facebook: string; instagram: string; youtube: string }
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3005'
+const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 
 const Count = ({ n, lo, hi }: { n: number; lo: number; hi: number }) => (
   <span className={`tnum text-[11.5px] ${n === 0 ? 'text-ink-400' : n < lo || n > hi ? 'text-gold-600' : 'text-green-700'}`}>{n} / {hi}</span>

@@ -1,11 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Smartphone, Tablet, Monitor, RefreshCw, ExternalLink, X } from 'lucide-react'
+import { Smartphone, Tablet, Monitor, RefreshCw, ExternalLink, X, PlugZap } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Button, Spinner, Alert, IconButton, Kbd } from '@/components/ui'
 
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3005'
+const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 
 /** Widths from the devices in the analytics: iPhone, iPad portrait, laptop. */
 const DEVICES = [
@@ -33,6 +33,8 @@ export function PreviewPanel({
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null)
+  /** null while the website has not been probed yet. */
+  const [siteUp, setSiteUp] = useState<boolean | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   const draftRef = useRef(draft)
@@ -42,6 +44,16 @@ export function PreviewPanel({
     setLoading(true)
     setError(null)
     try {
+      // The preview renders inside the website, so a stopped or misconfigured
+      // website shows the browser's own error page inside the frame with no
+      // explanation. Probe it first and say what is wrong.
+      try {
+        await fetch(LP, { mode: 'no-cors', cache: 'no-store', signal: AbortSignal.timeout(6000) })
+        setSiteUp(true)
+      } catch {
+        setSiteUp(false)
+        return
+      }
       const r = await api.post<{ data: { token: string } }>(`/pages/${pageId}/preview`, draftRef.current)
       setToken(r.data.token)
       setRefreshedAt(new Date())
@@ -106,7 +118,25 @@ export function PreviewPanel({
       </header>
 
       <div className="scroll-thin flex-1 overflow-auto p-4">
-        {error ? (
+        {siteUp === false ? (
+          <div className="mx-auto max-w-lg pt-16 text-center text-white">
+            <span className="mx-auto grid size-12 place-items-center rounded-[var(--radius-tile)] bg-white/10 text-gold-300">
+              <PlugZap className="size-6" />
+            </span>
+            <h3 className="mt-4 text-[16px] font-bold">Website tidak bisa dihubungi</h3>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-white/60">
+              Pratinjau ditampilkan di dalam website, tetapi tidak ada yang menjawab di{' '}
+              <span className="mono text-white/80">{LP}</span>.
+            </p>
+            <ul className="mono mt-4 grid gap-1.5 text-left text-[12px] text-white/55">
+              <li>1. Jalankan website: <span className="text-white/80">npm run dev</span> di folder kspsarisedanabali-fe-lp</li>
+              <li>2. Pastikan NEXT_PUBLIC_LP_URL di konsol menunjuk alamat yang sama</li>
+            </ul>
+            <Button variant="secondary" className="mt-5 !border-white/15 !bg-white/[0.06] !text-white hover:!bg-white/10" onClick={() => void refresh()} loading={loading}>
+              <RefreshCw className="size-3.5" /> Coba lagi
+            </Button>
+          </div>
+        ) : error ? (
           <div className="mx-auto max-w-lg pt-10"><Alert>{error}</Alert></div>
         ) : !url ? (
           <div className="pt-20 text-white/70"><Spinner label="Menyiapkan pratinjau…" /></div>

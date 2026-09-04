@@ -140,7 +140,7 @@ export async function uploadFile(file: File, folder: 'media' | 'documents' = 'me
   })
 }
 
-const LP_BASE = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3005'
+const LP_BASE = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 
 /**
  * Image fields store object keys; the website proxies them while the bucket

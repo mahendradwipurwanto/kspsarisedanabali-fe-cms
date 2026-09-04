@@ -21,7 +21,7 @@ interface Page {
   seo: Record<string, string | boolean | undefined>; blocks: Block[]
 }
 
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3005'
+const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 const CATEGORY_ICON = { Utama: LayoutTemplate, Konten: Type, Produk: Package, Konversi: Megaphone, Media: ImageIcon } as const
 
 /** Character counter coloured by the range that matters, not a bare "37/60". */

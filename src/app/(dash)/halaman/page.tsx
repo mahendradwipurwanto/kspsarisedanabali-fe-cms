@@ -16,7 +16,7 @@ interface Row {
   updatedAt: string; updatedByName?: string | null; blockCount: number
 }
 
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3005'
+const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 const STATUS: Record<string, { label: string; variant: 'success' | 'warning' | 'secondary' }> = {
   published: { label: 'Terbit', variant: 'success' },
   review: { label: 'Menunggu review', variant: 'warning' },
