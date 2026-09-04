@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ImagePlus, X } from 'lucide-react'
 import { DEFAULT_BRAND, type BrandSettings } from '@/contracts'
 import { useSettings } from '@/lib/use-settings'
+import { mediaSrc } from '@/lib/api'
 import { Card, PageHeader, Spinner, Button, Field, inputCls, IconButton } from '@/components/ui'
 import { MediaPicker } from '@/components/MediaPicker'
 
@@ -17,7 +18,7 @@ function LogoField({ label, hint, value, onChange, dark }: { label: string; hint
       <div className={`flex items-center gap-3 rounded-[var(--radius-input)] border border-line p-2 ${dark ? 'grid-dark bg-ink-900' : 'bg-white'}`}>
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={value} alt="" className="h-12 max-w-[160px] object-contain" />
+          <img src={mediaSrc(value)} alt="" className="h-12 max-w-[160px] object-contain" />
         ) : (
           <span className={`px-2 text-[12.5px] ${dark ? 'text-white/50' : 'text-ink-400'}`}>Memakai lambang daun bawaan</span>
         )}
@@ -26,7 +27,7 @@ function LogoField({ label, hint, value, onChange, dark }: { label: string; hint
           {value ? <IconButton label="Hapus logo" onClick={() => onChange('')} className={dark ? 'text-white/60 hover:!bg-white/10 hover:!text-white' : ''}><X className="size-4" /></IconButton> : null}
         </span>
       </div>
-      <MediaPicker open={open} onClose={() => setOpen(false)} value={value} onSelect={(m) => { onChange(m.url); setOpen(false) }} />
+      <MediaPicker open={open} onClose={() => setOpen(false)} value={value} onSelect={(m) => { onChange(m.key); setOpen(false) }} />
     </Field>
   )
 }
@@ -82,11 +83,11 @@ export default function IdentityPage() {
           <Card title="Pratinjau merek" description="Kira-kira begini di header dan footer.">
             <div className="grid gap-3">
               <div className="flex items-center gap-3 rounded-[var(--radius-tile)] border border-line bg-white p-3">
-                {brand.logo ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={brand.logo} alt="" className="h-9 object-contain" /> : <span className="grid size-9 place-items-center rounded-[6px] bg-green-600 text-white text-[12px] font-bold">SS</span>}
+                {brand.logo ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={mediaSrc(brand.logo)} alt="" className="h-9 object-contain" /> : <span className="grid size-9 place-items-center rounded-[6px] bg-green-600 text-white text-[12px] font-bold">SS</span>}
                 <span className="leading-tight"><span className="block text-[14px] font-extrabold text-ink-900">{brand.name || 'Nama koperasi'}</span><span className="block text-[11px] text-ink-400">{brand.tagline}</span></span>
               </div>
               <div className="grid-dark flex items-center gap-3 rounded-[var(--radius-tile)] bg-ink-900 p-3">
-                {brand.logoLight || brand.logo ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={brand.logoLight || brand.logo} alt="" className="h-9 object-contain" /> : <span className="grid size-9 place-items-center rounded-[6px] bg-white/10 text-gold-300 text-[12px] font-bold">SS</span>}
+                {brand.logoLight || brand.logo ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={mediaSrc(brand.logoLight || brand.logo)} alt="" className="h-9 object-contain" /> : <span className="grid size-9 place-items-center rounded-[6px] bg-white/10 text-gold-300 text-[12px] font-bold">SS</span>}
                 <span className="leading-tight"><span className="block text-[14px] font-extrabold text-white">{brand.name || 'Nama koperasi'}</span><span className="block text-[11px] text-white/50">{brand.tagline}</span></span>
               </div>
             </div>

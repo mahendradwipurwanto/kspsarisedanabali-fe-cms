@@ -8,7 +8,7 @@ import {
   LayoutTemplate, Type, Package, Megaphone, Image as ImageIcon, ChevronDown, ChevronRight, Globe, MessageCircle,
 } from 'lucide-react'
 import { BLOCK_LIST, getBlock, defaultPropsFor, type SeoCheck } from '@/contracts'
-import { api, ApiError } from '@/lib/api'
+import { api, ApiError, mediaSrc } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { BlockForm } from '@/components/BlockForm'
 import { BlockList } from '@/components/BlockList'
@@ -346,7 +346,7 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
             <div className="mt-3 overflow-hidden rounded-[var(--radius-tile)] border border-line">
               {page.seo.ogImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={String(page.seo.ogImage)} alt="" className="aspect-[1200/630] w-full bg-ink-100 object-cover" />
+                <img src={mediaSrc(String(page.seo.ogImage))} alt="" className="aspect-[1200/630] w-full bg-ink-100 object-cover" />
               ) : (
                 <div className="grid aspect-[1200/630] w-full place-items-center bg-paper px-4 text-center text-[11px] leading-relaxed text-ink-400">
                   Belum ada gambar. WhatsApp akan menampilkan kartu polos.

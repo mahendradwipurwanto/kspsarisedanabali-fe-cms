@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Upload, Search, Check, ImageOff } from 'lucide-react'
 import { toast } from 'sonner'
-import { api, uploadFile } from '@/lib/api'
+import { api, uploadFile, mediaSrc } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { Modal, Button, inputCls, Spinner, Empty, Pill } from './ui'
 
@@ -82,7 +82,7 @@ export function MediaPicker({
         ) : filtered.length ? (
           <ul className="scroll-thin grid max-h-[56vh] grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3 lg:grid-cols-4">
             {filtered.map((m) => {
-              const selected = m.url === value
+              const selected = value != null && (m.key === value || m.url === value)
               return (
                 <li key={m.id}>
                   <button
@@ -91,7 +91,7 @@ export function MediaPicker({
                     className={`group/m relative block w-full overflow-hidden rounded-[var(--radius-tile)] border bg-white text-left transition-colors ${selected ? 'border-green-600 ring-2 ring-green-600/25' : 'border-line hover:border-ink-900'}`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={m.url} alt={m.alt ?? ''} className="aspect-[4/3] w-full bg-paper object-cover" loading="lazy" />
+                    <img src={mediaSrc(m.url)} alt={m.alt ?? ''} className="aspect-[4/3] w-full bg-paper object-cover" loading="lazy" />
                     <span className="block p-2.5">
                       <span className="block truncate text-[12px] font-semibold text-ink-800">{m.filename}</span>
                       <span className="mt-1 flex items-center justify-between gap-2">

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { api, uploadFile } from '@/lib/api'
+import { api, uploadFile, mediaSrc } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { Card, PageHeader, Spinner, Empty, Button, Alert, inputCls, Pill } from '@/components/ui'
 
@@ -60,7 +60,7 @@ export default function MediaPage() {
           {items.map((m) => (
             <Card key={m.id} className="overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={m.url} alt={m.alt ?? ''} className="aspect-[4/3] w-full object-cover" />
+              <img src={mediaSrc(m.url)} alt={m.alt ?? ''} className="aspect-[4/3] w-full object-cover" />
               <div className="p-3">
                 <p className="truncate text-xs font-medium text-ink-800">{m.filename}</p>
                 <p className="mt-1 truncate text-[11px] text-ink-500">{m.alt || 'Belum ada keterangan'}</p>

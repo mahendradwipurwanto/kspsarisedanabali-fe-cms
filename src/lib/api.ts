@@ -1,5 +1,7 @@
 'use client'
 
+import { mediaSrc as resolveMedia } from '@/contracts'
+
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001'
 
 export interface AuthUser {
@@ -137,3 +139,13 @@ export async function uploadFile(file: File, folder: 'media' | 'documents' = 'me
     ...dims,
   })
 }
+
+const LP_BASE = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3005'
+
+/**
+ * Image fields store object keys; the website proxies them while the bucket
+ * stays private. The console lives on another origin, so previews resolve
+ * against the website.
+ */
+export const mediaSrc = (value: string | null | undefined) =>
+  resolveMedia(value, { proxyBase: LP_BASE, publicBase: process.env.NEXT_PUBLIC_STORAGE_PUBLIC_URL })

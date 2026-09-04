@@ -7,7 +7,7 @@ import {
   ShieldCheck, Building2, Percent, Briefcase, FileText, Mail, Clock, Compass, Leaf, Check,
 } from 'lucide-react'
 import { ICON_NAMES, INTERNAL_ROUTES, type FieldDef, type FieldMap } from '@/contracts'
-import { api } from '@/lib/api'
+import { api, mediaSrc } from '@/lib/api'
 import { Button, IconButton, inputCls, selectCls, Field, Switch } from './ui'
 import { MediaPicker } from './MediaPicker'
 
@@ -244,8 +244,8 @@ function ImageField({
       {value ? (
         <div className="flex items-center gap-3 rounded-[var(--radius-input)] border border-line bg-white p-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt="" className="size-16 shrink-0 rounded-[6px] bg-paper object-cover" />
-          <span className="mono min-w-0 flex-1 truncate text-[11.5px] text-ink-500">{value.replace(/^https?:\/\/[^/]+/, '')}</span>
+          <img src={mediaSrc(value)} alt="" className="size-16 shrink-0 rounded-[6px] bg-paper object-cover" />
+          <span className="mono min-w-0 flex-1 truncate text-[11.5px] text-ink-500">{value.replace(/^https?:\/\/[^/]+\//, '').replace(/^\/api\/media\//, '')}</span>
           <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>Ganti</Button>
           <IconButton label="Hapus gambar" onClick={() => onChange('')} className="hover:!text-red-600"><X className="size-4" /></IconButton>
         </div>
@@ -259,7 +259,7 @@ function ImageField({
           Pilih dari media atau unggah
         </button>
       )}
-      <MediaPicker open={open} onClose={() => setOpen(false)} value={value} onSelect={(m) => { onChange(m.url); setOpen(false) }} />
+      <MediaPicker open={open} onClose={() => setOpen(false)} value={value} onSelect={(m) => { onChange(m.key); setOpen(false) }} />
     </Field>
   )
 }
