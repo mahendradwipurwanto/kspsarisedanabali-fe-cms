@@ -1,38 +1,44 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileText } from 'lucide-react'
+import Link from 'next/link'
+import { FileText, Pencil, ExternalLink, PanelTop, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
-import { PageHeader, Pill, Spinner, Empty, Button, Modal, Field, inputCls, Alert, fmtRelative } from '@/components/ui'
-import { DataGrid, useGridRows, useGridView, type GridField } from '@/components/DataGrid'
-import { GridToolbar } from '@/components/GridToolbar'
+import { PageHeader, Empty, Button, Modal, Field, inputCls, Alert, fmtRelative, Badge } from '@/components/ui'
+import { DataTable } from '@/components/DataTable'
+import { buildColumns, defaultHidden, fieldText, type TableField } from '@/components/fields'
 
 interface Row {
   id: string; title: string; slug: string; status: string; isSystem: boolean
   updatedAt: string; updatedByName?: string | null; blockCount: number
 }
 
-const STATUS: Record<string, { label: string; tone: 'green' | 'amber' | 'grey' }> = {
-  published: { label: 'Terbit', tone: 'green' },
-  review: { label: 'Menunggu review', tone: 'amber' },
-  draft: { label: 'Draf', tone: 'grey' },
+const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3005'
+const STATUS: Record<string, { label: string; variant: 'success' | 'warning' | 'secondary' }> = {
+  published: { label: 'Terbit', variant: 'success' },
+  review: { label: 'Menunggu review', variant: 'warning' },
+  draft: { label: 'Draf', variant: 'secondary' },
 }
 
-const FIELDS: GridField<Row>[] = [
-  { key: 'title', label: 'Judul halaman', type: 'text', width: 280, secondary: (r) => `/${r.slug === '/' ? '' : r.slug}` },
+const FIELDS: TableField<Row>[] = [
+  { key: 'title', label: 'Judul halaman', type: 'text', secondary: (r) => `/${r.slug === '/' ? '' : r.slug}` },
   {
     key: 'status', label: 'Status', type: 'readonly', width: 150,
     get: (r) => STATUS[r.status]?.label ?? r.status,
-    render: (r) => <Pill tone={STATUS[r.status]?.tone ?? 'grey'}>{STATUS[r.status]?.label ?? r.status}</Pill>,
+    render: (r) => <Badge variant={STATUS[r.status]?.variant ?? 'secondary'}>{STATUS[r.status]?.label ?? r.status}</Badge>,
   },
-  { key: 'slug', label: 'Alamat', type: 'readonly', width: 200, get: (r) => `/${r.slug === '/' ? '' : r.slug}` },
-  { key: 'blockCount', label: 'Blok', type: 'number', width: 90, readOnly: true },
+  {
+    key: 'kind', label: 'Jenis', type: 'readonly', width: 130,
+    get: (r) => (r.isSystem ? 'Halaman sistem' : 'Halaman statis'),
+    render: (r) => <Badge variant={r.isSystem ? 'outline' : 'secondary'}>{r.isSystem ? 'Sistem' : 'Statis'}</Badge>,
+  },
+  { key: 'blockCount', label: 'Blok', type: 'number', width: 90 },
   { key: 'updatedAt', label: 'Terakhir diubah', type: 'readonly', width: 170, get: (r) => fmtRelative(r.updatedAt) },
-  { key: 'updatedByName', label: 'Oleh', type: 'readonly', width: 160 },
-  { key: 'isSystem', label: 'Halaman sistem', type: 'boolean', width: 140, readOnly: true },
+  { key: 'updatedByName', label: 'Oleh', type: 'readonly', width: 150 },
+  { key: 'slug', label: 'Alamat', type: 'readonly', hiddenByDefault: true, get: (r) => `/${r.slug === '/' ? '' : r.slug}` },
 ]
 
 export default function PagesList() {
@@ -40,14 +46,12 @@ export default function PagesList() {
   const router = useRouter()
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
-  const view = useGridView('halaman')
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const r = await api.get<{ data: Row[] }>('/pages?limit=100')
+      const r = await api.get<{ data: Row[] }>('/pages?limit=200')
       setRows(r.data)
     } catch (e) {
       toast.error('Gagal memuat halaman', { description: (e as Error).message })
@@ -58,62 +62,90 @@ export default function PagesList() {
 
   useEffect(() => { void load() }, [load])
 
-  const visible = useGridRows(rows, FIELDS, query, view.sort)
-  const canWrite = can('pages:update')
+  const open = useCallback((row: Row) => router.push(`/halaman/${row.id}`), [router])
 
-  async function renameRow(id: string, title: string) {
-    const before = rows.find((r) => r.id === id)?.title
-    setRows((list) => list.map((r) => (r.id === id ? { ...r, title } : r)))
+  const remove = useCallback(async (row: Row) => {
+    if (row.isSystem) return toast.warning('Halaman sistem tidak bisa dihapus')
+    if (!window.confirm(`Hapus halaman “${row.title}”? Tautan ke halaman ini akan mati.`)) return
     try {
-      await api.patch(`/pages/${id}`, { title })
+      await api.del(`/pages/${row.id}`)
+      setRows((list) => list.filter((r) => r.id !== row.id))
+      toast.success('Halaman dihapus')
     } catch (e) {
-      setRows((list) => list.map((r) => (r.id === id ? { ...r, title: before ?? r.title } : r)))
-      toast.error('Judul tidak tersimpan', { description: (e as Error).message })
+      toast.error('Gagal menghapus halaman', { description: (e as Error).message })
     }
-  }
+  }, [])
+
+  const columns = useMemo(
+    () => buildColumns<Row>({
+      fields: FIELDS,
+      canWrite: can('pages:update'),
+      selectable: false,
+      onEdit: open,
+      editLabel: 'Buka editor',
+      onDelete: can('pages:delete') ? (row) => void remove(row) : undefined,
+      extraActions: [
+        {
+          label: 'Lihat di website',
+          icon: <ExternalLink className="size-3.5" />,
+          onSelect: (row) => window.open(`${LP}/${row.slug === '/' ? '' : row.slug}`, '_blank', 'noopener'),
+        },
+        {
+          label: 'Salin alamat',
+          icon: <Copy className="size-3.5" />,
+          onSelect: (row) => {
+            void navigator.clipboard?.writeText(`/${row.slug === '/' ? '' : row.slug}`)
+            toast.success('Alamat halaman disalin')
+          },
+        },
+      ],
+    }),
+    [can, open, remove],
+  )
 
   return (
     <>
       <PageHeader
         title="Halaman"
-        subtitle="Semua halaman website. Buka rekaman untuk menyusun isinya blok demi blok."
+        subtitle="Halaman sistem dan halaman statis yang Anda buat sendiri. Buka editor untuk menyusun isinya blok demi blok."
+        action={
+          <Button variant="secondary" asChild>
+            <Link href="/pengaturan/header"><PanelTop className="size-4" /> Atur menu navigasi</Link>
+          </Button>
+        }
       />
 
-      <GridToolbar
-        fields={FIELDS}
-        view={view}
-        query={query}
-        onQuery={setQuery}
+      <DataTable<Row>
+        columns={columns}
+        data={rows}
+        loading={loading}
+        storageKey="halaman"
+        initialVisibility={defaultHidden(FIELDS)}
+        searchPlaceholder="Cari judul atau alamat…"
+        globalFilterFn={(row, _id, value) => {
+          const q = String(value).toLowerCase()
+          return FIELDS.some((f) => fieldText(row.original, f).toLowerCase().includes(q))
+        }}
         canWrite={can('pages:create')}
-        createLabel="Halaman baru"
         onCreate={() => setCreating(true)}
+        createLabel="Halaman baru"
+        onRowClick={open}
+        emptyState={
+          <Empty
+            icon={<FileText className="size-5" />}
+            title="Belum ada halaman"
+            body="Buat halaman statis seperti Syarat Keanggotaan atau Kebijakan Privasi, lalu tambahkan ke menu navigasi."
+            action={can('pages:create') ? <Button variant="dark" onClick={() => setCreating(true)}>Halaman baru</Button> : undefined}
+          />
+        }
       />
 
-      {loading ? (
-        <Spinner />
-      ) : (
-        <DataGrid<Row>
-          fields={FIELDS}
-          rows={visible}
-          rowHeight={view.rowHeight}
-          hidden={view.hidden}
-          widths={view.widths}
-          onWidths={view.setWidths}
-          sort={view.sort}
-          onSort={view.setSort}
-          canWrite={canWrite}
-          onEdit={canWrite ? ({ rowId, key, value }) => { if (key === 'title') void renameRow(rowId, String(value)) } : undefined}
-          onExpand={(row) => router.push(`/halaman/${row.id}`)}
-          primaryHref={(row) => `/halaman/${row.id}`}
-          emptyState={
-            <Empty
-              icon={<FileText className="size-5" />}
-              title={query ? 'Tidak ada yang cocok' : 'Belum ada halaman'}
-              body={query ? `Tidak ada halaman yang memuat “${query}”.` : 'Halaman utama website akan muncul di sini setelah data awal dimasukkan.'}
-            />
-          }
-        />
-      )}
+      <p className="mt-3 flex flex-wrap items-center gap-1.5 text-[12.5px] text-ink-500">
+        <Pencil className="size-3.5 text-ink-400" aria-hidden="true" />
+        Halaman baru tidak otomatis muncul di menu.
+        <Link href="/pengaturan/header" className="font-semibold text-green-700 hover:underline">Tambahkan ke menu navigasi</Link>
+        agar pengunjung menemukannya.
+      </p>
 
       {creating ? <NewPage onClose={() => setCreating(false)} onCreated={(id) => router.push(`/halaman/${id}`)} /> : null}
     </>
@@ -124,6 +156,7 @@ export default function PagesList() {
 function NewPage({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
   const [title, setTitle] = useState('')
   const [slug, setSlug] = useState('')
+  const [touched, setTouched] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -134,7 +167,14 @@ function NewPage({ onClose, onCreated }: { onClose: () => void; onCreated: (id: 
     setBusy(true)
     setError('')
     try {
-      const r = await api.post<{ data: { id: string } }>('/pages', { title, slug: slug || suggest(title), status: 'draft', seo: {}, blocks: [] })
+      const r = await api.post<{ data: { id: string } }>('/pages', {
+        title: title.trim(),
+        slug: (slug || suggest(title)).trim(),
+        status: 'draft',
+        seo: {},
+        blocks: [],
+      })
+      toast.success('Halaman dibuat sebagai draf')
       onCreated(r.data.id)
     } catch (err) {
       const e = err as ApiError
@@ -158,10 +198,16 @@ function NewPage({ onClose, onCreated }: { onClose: () => void; onCreated: (id: 
     >
       <div className="grid gap-4">
         <Field label="Judul halaman" required>
-          <input autoFocus value={title} onChange={(e) => { setTitle(e.target.value); setSlug(suggest(e.target.value)) }} className={inputCls} placeholder="Contoh: Syarat Keanggotaan" />
+          <input
+            autoFocus
+            value={title}
+            onChange={(e) => { setTitle(e.target.value); if (!touched) setSlug(suggest(e.target.value)) }}
+            className={inputCls}
+            placeholder="Contoh: Syarat Keanggotaan"
+          />
         </Field>
-        <Field label="Alamat halaman (slug)" hint="Huruf kecil dan tanda hubung saja.">
-          <input value={slug} onChange={(e) => setSlug(e.target.value)} className={`${inputCls} mono`} placeholder="syarat-keanggotaan" />
+        <Field label="Alamat halaman (slug)" hint="Huruf kecil dan tanda hubung saja. Halaman akan terbuka di /alamat-ini.">
+          <input value={slug} onChange={(e) => { setTouched(true); setSlug(e.target.value) }} className={`${inputCls} mono`} placeholder="syarat-keanggotaan" />
         </Field>
         {error ? <Alert>{error}</Alert> : null}
       </div>

@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { GripVertical, Plus, Trash2, ChevronUp, ChevronDown, CornerDownRight, Link2 } from 'lucide-react'
-import { INTERNAL_ROUTES, type MenuItem } from '@/contracts'
+import type { MenuItem } from '@/contracts'
 import { Button, IconButton, inputCls } from './ui'
+import { LinkDatalist, linkLabel, useLinkOptions } from './link-options'
 
 /**
  * Two-level menu editor. Rows are plain inputs, so a non-technical editor
@@ -16,6 +17,7 @@ export function MenuEditor({
 }: { items: MenuItem[]; onChange: (items: MenuItem[]) => void; allowChildren?: boolean; childLabel?: string }) {
   const [dragging, setDragging] = useState<number | null>(null)
   const [over, setOver] = useState<number | null>(null)
+  const options = useLinkOptions()
 
   const update = (i: number, next: Partial<MenuItem>) => onChange(items.map((it, j) => (j === i ? { ...it, ...next } : it)))
   const move = (list: MenuItem[], from: number, to: number) => {
@@ -28,9 +30,7 @@ export function MenuEditor({
 
   return (
     <div className="grid gap-2">
-      <datalist id="ksp-routes">
-        {INTERNAL_ROUTES.map((r) => <option key={r.href} value={r.href}>{r.label}</option>)}
-      </datalist>
+      <LinkDatalist id="ksp-routes" options={options} />
 
       {items.length === 0 ? (
         <p className="rounded-[var(--radius-tile)] border border-dashed border-line-strong bg-paper px-4 py-6 text-center text-[13px] text-ink-500">
@@ -57,6 +57,9 @@ export function MenuEditor({
                 <span className="relative min-w-0">
                   <Link2 className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-400" aria-hidden="true" />
                   <input value={item.href} onChange={(e) => update(i, { href: e.target.value })} list="ksp-routes" placeholder="/produk atau https://…" className={`${inputCls} mono pl-8`} aria-label="Tautan" />
+                  {linkLabel(item.href, options) ? (
+                    <span className="mt-1 block truncate text-[11.5px] text-ink-400">→ {linkLabel(item.href, options)}</span>
+                  ) : null}
                 </span>
               </div>
               <span className="flex shrink-0 items-center">

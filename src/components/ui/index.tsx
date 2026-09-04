@@ -1,7 +1,11 @@
 'use client'
 
 import { useEffect, type ReactNode, type ButtonHTMLAttributes } from 'react'
+import { Slot } from '@radix-ui/react-slot'
 import { X, Loader2, Check, AlertTriangle, Info, CircleAlert } from 'lucide-react'
+
+export { Badge, badgeVariants } from './badge'
+export { Checkbox } from './checkbox'
 
 /* ─────────────────────────────── inputs ─────────────────────────────── */
 
@@ -26,22 +30,29 @@ const BTN = {
 const SIZE = { xs: 'h-7 px-2.5 text-xs gap-1', sm: 'h-8 px-3 text-xs', md: 'h-10 px-4 text-sm', lg: 'h-11 px-5 text-sm' }
 
 export function Button({
-  children, variant = 'primary', size = 'md', loading = false, className = '', disabled, ...rest
+  children, variant = 'primary', size = 'md', loading = false, className = '', disabled, asChild = false, ...rest
 }: {
   children: ReactNode
   variant?: keyof typeof BTN
   size?: keyof typeof SIZE
   loading?: boolean
+  /** Render the child element with the button's styling, as shadcn does. */
+  asChild?: boolean
 } & ButtonHTMLAttributes<HTMLButtonElement>) {
+  const Comp = asChild ? Slot : 'button'
   return (
-    <button
-      className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-[var(--radius-input)] font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${BTN[variant]} ${SIZE[size]} ${className}`}
-      disabled={disabled || loading}
+    <Comp
+      className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-[var(--radius-input)] font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:shrink-0 ${BTN[variant]} ${SIZE[size]} ${className}`}
+      disabled={asChild ? undefined : disabled || loading}
       {...rest}
     >
-      {loading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
-      {children}
-    </button>
+      {asChild ? children : (
+        <>
+          {loading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+          {children}
+        </>
+      )}
+    </Comp>
   )
 }
 

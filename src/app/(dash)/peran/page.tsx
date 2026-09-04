@@ -1,35 +1,35 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ShieldCheck, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { PERMISSION_GROUPS, PERMISSIONS } from '@/contracts'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
-import { PageHeader, Pill, Spinner, Empty, Button, Modal, Field, inputCls, Alert } from '@/components/ui'
-import { DataGrid, useGridRows, useGridView, type GridField } from '@/components/DataGrid'
-import { GridToolbar } from '@/components/GridToolbar'
+import { PageHeader, Empty, Button, Modal, Field, inputCls, Alert, Badge } from '@/components/ui'
+import { DataTable } from '@/components/DataTable'
+import { buildColumns, defaultHidden, fieldText, type TableField } from '@/components/fields'
 
 interface Role {
   id: string; key: string; name: string; description?: string | null
   permissions: string[]; isLocked: boolean; userCount: number
 }
 
-const FIELDS: GridField<Role>[] = [
-  { key: 'name', label: 'Nama peran', type: 'text', width: 220, required: true },
-  { key: 'key', label: 'Kunci', type: 'readonly', width: 170 },
-  { key: 'description', label: 'Keterangan', type: 'text', width: 340 },
+const FIELDS: TableField<Role>[] = [
+  { key: 'name', label: 'Nama peran', type: 'text', required: true, secondary: (r) => r.key },
+  { key: 'description', label: 'Keterangan', type: 'text' },
   { key: 'permissions', label: 'Hak akses', type: 'readonly', width: 130, get: (r) => `${r.permissions.length} hak akses` },
-  { key: 'userCount', label: 'Pengguna', type: 'number', width: 110, readOnly: true },
+  { key: 'userCount', label: 'Pengguna', type: 'number', width: 110 },
   {
-    key: 'isLocked', label: 'Terkunci', type: 'readonly', width: 120,
-    get: (r) => (r.isLocked ? 'Ya' : 'Tidak'),
-    render: (r) => (r.isLocked ? <Pill tone="grey"><Lock className="size-3" /> Sistem</Pill> : <span className="text-ink-300">—</span>),
+    key: 'isLocked', label: 'Jenis', type: 'readonly', width: 120,
+    get: (r) => (r.isLocked ? 'Sistem' : 'Kustom'),
+    render: (r) => (r.isLocked ? <Badge variant="outline"><Lock className="size-3" /> Sistem</Badge> : <Badge variant="secondary">Kustom</Badge>),
   },
+  { key: 'key', label: 'Kunci', type: 'readonly', hiddenByDefault: true },
 ]
 
 /**
- * Roles as a table, with the permission builder behind the expand button.
+ * Roles as a table, with the permission builder behind the row action.
  *
  * Permissions are checkboxes grouped by module with a plain-Indonesian
  * description each, so an administrator can compose a role without knowing
@@ -39,9 +39,8 @@ export default function RolesPage() {
   const { can } = useAuth()
   const [roles, setRoles] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<Role | 'new' | null>(null)
-  const view = useGridView('peran')
+  const canManage = can('roles:manage')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -57,22 +56,16 @@ export default function RolesPage() {
 
   useEffect(() => { void load() }, [load])
 
-  const visible = useGridRows(roles, FIELDS, query, view.sort)
-  const canManage = can('roles:manage')
-
-  async function edit(rowId: string, key: string, value: unknown) {
-    const role = roles.find((r) => r.id === rowId)
-    if (!role) return
-    if (role.isLocked) return toast.warning('Peran sistem tidak bisa diubah')
-    const previous = (role as unknown as Record<string, unknown>)[key]
-    setRoles((list) => list.map((r) => (r.id === rowId ? { ...r, [key]: value } : r)))
-    try {
-      await api.patch(`/roles/${rowId}`, { [key]: value })
-    } catch (e) {
-      setRoles((list) => list.map((r) => (r.id === rowId ? { ...r, [key]: previous } : r)))
-      toast.error('Perubahan tidak tersimpan', { description: (e as Error).message })
-    }
-  }
+  const columns = useMemo(
+    () => buildColumns<Role>({
+      fields: FIELDS,
+      selectable: false,
+      canWrite: canManage,
+      onEdit: setEditing,
+      editLabel: canManage ? 'Ubah hak akses' : 'Lihat hak akses',
+    }),
+    [canManage],
+  )
 
   return (
     <>
@@ -81,35 +74,23 @@ export default function RolesPage() {
         subtitle="Tentukan apa yang boleh dilakukan setiap peran. Perubahan berlaku saat pengguna masuk berikutnya."
       />
 
-      <GridToolbar
-        fields={FIELDS}
-        view={view}
-        query={query}
-        onQuery={setQuery}
+      <DataTable<Role>
+        columns={columns}
+        data={roles}
+        loading={loading}
+        storageKey="peran"
+        initialVisibility={defaultHidden(FIELDS)}
+        searchPlaceholder="Cari peran…"
+        globalFilterFn={(row, _id, value) => {
+          const q = String(value).toLowerCase()
+          return FIELDS.some((f) => fieldText(row.original, f).toLowerCase().includes(q))
+        }}
         canWrite={canManage}
-        createLabel="Peran baru"
         onCreate={() => setEditing('new')}
+        createLabel="Peran baru"
+        onRowClick={setEditing}
+        emptyState={<Empty icon={<ShieldCheck className="size-5" />} title="Belum ada peran" body="Peran bawaan akan muncul setelah data awal dimasukkan." />}
       />
-
-      {loading ? (
-        <Spinner />
-      ) : (
-        <DataGrid<Role>
-          fields={FIELDS}
-          rows={visible}
-          rowHeight={view.rowHeight}
-          hidden={view.hidden}
-          widths={view.widths}
-          onWidths={view.setWidths}
-          sort={view.sort}
-          onSort={view.setSort}
-          canWrite={canManage}
-          onEdit={canManage ? ({ rowId, key, value }) => void edit(rowId, key, value) : undefined}
-          onExpand={setEditing}
-          onCreate={() => setEditing('new')}
-          emptyState={<Empty icon={<ShieldCheck className="size-5" />} title="Belum ada peran" body="Peran bawaan akan muncul setelah data awal dimasukkan." />}
-        />
-      )}
 
       {editing ? (
         <RoleEditor

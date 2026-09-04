@@ -1,7 +1,7 @@
 'use client'
 
 import { MapPin } from 'lucide-react'
-import { ResourceList, type GridField } from '@/components/ResourceList'
+import { ResourceList, type TableField } from '@/components/ResourceList'
 
 interface Branch {
   id: string; name: string; slug: string; type: string; address: string
@@ -10,11 +10,11 @@ interface Branch {
   latitude: number; longitude: number; isActive: boolean
 }
 
-const FIELDS: GridField<Branch>[] = [
+const FIELDS: TableField<Branch>[] = [
   { key: 'name', label: 'Nama kantor', type: 'text', width: 220, required: true, secondary: (r) => r.address },
   {
     key: 'type', label: 'Jenis', type: 'select', width: 120, required: true,
-    options: [{ value: 'pusat', label: 'Pusat', tone: 'green' }, { value: 'cabang', label: 'Cabang', tone: 'grey' }],
+    options: [{ value: 'pusat', label: 'Pusat', variant: 'success' }, { value: 'cabang', label: 'Cabang', variant: 'secondary' }],
   },
   { key: 'address', label: 'Alamat', type: 'longtext', width: 320, required: true, hint: 'Tulis alamat asli, bukan kode plus Google Maps.' },
   { key: 'district', label: 'Kecamatan', type: 'text', width: 150 },

@@ -1,7 +1,7 @@
 'use client'
 
 import { UserCog } from 'lucide-react'
-import { ResourceList, Pill, type GridField } from '@/components/ResourceList'
+import { ResourceList, Pill, type TableField } from '@/components/ResourceList'
 import { fmtRelative } from '@/components/ui'
 
 interface User {
@@ -10,7 +10,7 @@ interface User {
   branches: { id: string; name: string }[]
 }
 
-const FIELDS: GridField<User>[] = [
+const FIELDS: TableField<User>[] = [
   { key: 'name', label: 'Nama', type: 'text', width: 220, readOnly: true, secondary: (r) => r.email },
   { key: 'email', label: 'Email', type: 'text', width: 240, readOnly: true },
   {

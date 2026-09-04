@@ -1,7 +1,7 @@
 'use client'
 
 import { Package } from 'lucide-react'
-import { ResourceList, type GridField } from '@/components/ResourceList'
+import { ResourceList, type TableField } from '@/components/ResourceList'
 import { mediaSrc } from '@/lib/api'
 
 interface Product {
@@ -11,12 +11,12 @@ interface Product {
   tenorOptions?: number[]
 }
 
-const FIELDS: GridField<Product>[] = [
+const FIELDS: TableField<Product>[] = [
   { key: 'name', label: 'Nama produk', type: 'text', width: 240, required: true, secondary: (r) => r.tagline ?? `/${r.slug}` },
   { key: 'image', label: 'Brosur', type: 'image', width: 80, render: undefined },
   {
     key: 'category', label: 'Kategori', type: 'select', width: 130, required: true,
-    options: [{ value: 'simpanan', label: 'Simpanan', tone: 'green' }, { value: 'pinjaman', label: 'Pinjaman', tone: 'gold' }],
+    options: [{ value: 'simpanan', label: 'Simpanan', variant: 'success' }, { value: 'pinjaman', label: 'Pinjaman', variant: 'warning' }],
   },
   { key: 'tagline', label: 'Kalimat penarik', type: 'text', width: 260 },
   {

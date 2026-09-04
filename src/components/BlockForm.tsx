@@ -6,10 +6,11 @@ import {
   Sparkles, Calculator, MapPin, Phone, Users, TrendingUp, Wallet, Handshake, PiggyBank, Award, Star,
   ShieldCheck, Building2, Percent, Briefcase, FileText, Mail, Clock, Compass, Leaf, Check,
 } from 'lucide-react'
-import { ICON_NAMES, INTERNAL_ROUTES, type FieldDef, type FieldMap } from '@/contracts'
+import { ICON_NAMES, type FieldDef, type FieldMap } from '@/contracts'
 import { api, mediaSrc } from '@/lib/api'
 import { Button, IconButton, inputCls, selectCls, Field, Switch } from './ui'
 import { MediaPicker } from './MediaPicker'
+import { LinkDatalist, linkLabel, useLinkOptions } from './link-options'
 
 /**
  * Schema-driven form renderer.
@@ -68,21 +69,8 @@ function FieldInput({
       )
     }
 
-    case 'link': {
-      const str = String(value ?? '')
-      const known = INTERNAL_ROUTES.find((r) => r.href === str)
-      return (
-        <Field label={def.label} {...common} hint={known ? `→ ${known.label}` : def.help}>
-          <span className="relative block">
-            <Link2 className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-400" aria-hidden="true" />
-            <input value={str} list="ksp-link-routes" placeholder={def.placeholder ?? '/produk atau https://…'} onChange={(e) => onChange(e.target.value)} className={`${inputCls} mono pl-8`} />
-          </span>
-          <datalist id="ksp-link-routes">
-            {INTERNAL_ROUTES.map((r) => <option key={r.href} value={r.href}>{r.label}</option>)}
-          </datalist>
-        </Field>
-      )
-    }
+    case 'link':
+      return <LinkField def={def} common={common} value={String(value ?? '')} onChange={onChange} />
 
     case 'icon':
       return <IconField label={def.label} {...common} value={String(value ?? '')} onChange={onChange} />
@@ -156,6 +144,28 @@ function FieldInput({
     case 'repeater':
       return <RepeaterField name={name} def={def} value={Array.isArray(value) ? value : []} onChange={onChange} />
   }
+}
+
+/** A link field with autocomplete over the website's routes and console pages. */
+function LinkField({
+  def, common, value, onChange,
+}: {
+  def: Extract<FieldDef, { kind: 'link' }>
+  common: { hint?: string; error?: string; required?: boolean }
+  value: string
+  onChange: (v: unknown) => void
+}) {
+  const options = useLinkOptions()
+  const known = linkLabel(value, options)
+  return (
+    <Field label={def.label} {...common} hint={known ? `→ ${known}` : def.help}>
+      <span className="relative block">
+        <Link2 className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-400" aria-hidden="true" />
+        <input value={value} list="ksp-link-routes" placeholder={def.placeholder ?? '/produk atau https://…'} onChange={(e) => onChange(e.target.value)} className={`${inputCls} mono pl-8`} />
+      </span>
+      <LinkDatalist id="ksp-link-routes" options={options} />
+    </Field>
+  )
 }
 
 /* ────────────────────────────── rich text ───────────────────────────── */
