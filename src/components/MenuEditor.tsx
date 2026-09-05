@@ -7,6 +7,30 @@ import { Button, IconButton, inputCls } from './ui'
 import { LinkDatalist, linkLabel, useLinkOptions } from './link-options'
 
 /**
+ * Move up / move down.
+ *
+ * These were two 16px icons stacked in the corner: an easy thing to miss and a
+ * hard thing to hit. A paired control the size of a normal button reads as
+ * something you press, and each half keeps a hover label.
+ */
+function Reorder({
+  onUp, onDown, upDisabled, downDisabled, compact = false,
+}: { onUp: () => void; onDown: () => void; upDisabled: boolean; downDisabled: boolean; compact?: boolean }) {
+  const cell = `grid ${compact ? 'size-7' : 'size-8'} place-items-center bg-white text-ink-500 transition-colors hover:bg-paper hover:text-ink-900 disabled:cursor-not-allowed disabled:text-ink-300 disabled:hover:bg-white`
+  return (
+    <span className="inline-flex shrink-0 overflow-hidden rounded-[var(--radius-tile)] border border-line">
+      <button type="button" onClick={onUp} disabled={upDisabled} aria-label="Pindah ke atas" title="Pindah ke atas" className={cell}>
+        <ChevronUp className={compact ? 'size-3.5' : 'size-4'} />
+      </button>
+      <span aria-hidden="true" className="w-px bg-line" />
+      <button type="button" onClick={onDown} disabled={downDisabled} aria-label="Pindah ke bawah" title="Pindah ke bawah" className={cell}>
+        <ChevronDown className={compact ? 'size-3.5' : 'size-4'} />
+      </button>
+    </span>
+  )
+}
+
+/**
  * Two-level menu editor. Rows are plain inputs, so a non-technical editor
  * changes a label the way they would in a spreadsheet; links autocomplete
  * from the website's fixed routes so nobody has to remember a path.
@@ -40,6 +64,9 @@ export function MenuEditor({
 
       {items.map((item, i) => {
         const isOver = over === i && dragging !== null && dragging !== i
+        const hasChildren = Boolean(item.children?.length)
+        // A group with no address exists only to open its dropdown.
+        const isGroup = hasChildren && !item.href.trim()
         return (
           <div
             key={i}
@@ -56,17 +83,28 @@ export function MenuEditor({
                 <input value={item.label} onChange={(e) => update(i, { label: e.target.value })} placeholder="Label menu" className={inputCls} aria-label="Label menu" />
                 <span className="relative min-w-0">
                   <Link2 className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-400" aria-hidden="true" />
-                  <input value={item.href} onChange={(e) => update(i, { href: e.target.value })} list="ksp-routes" placeholder="/produk atau https://…" className={`${inputCls} mono pl-8`} aria-label="Tautan" />
+                  <input
+                    value={item.href}
+                    onChange={(e) => update(i, { href: e.target.value })}
+                    list="ksp-routes"
+                    placeholder={hasChildren ? 'Boleh dikosongkan' : '/produk atau https://…'}
+                    className={`${inputCls} mono pl-8`}
+                    aria-label="Tautan"
+                  />
                   {linkLabel(item.href, options) ? (
                     <span className="mt-1 block truncate text-[11.5px] text-ink-400">→ {linkLabel(item.href, options)}</span>
+                  ) : isGroup ? (
+                    <span className="mt-1 block truncate text-[11.5px] text-ink-400">→ hanya pembuka submenu, tidak bisa diklik</span>
                   ) : null}
                 </span>
               </div>
               <span className="flex shrink-0 items-center">
-                <span className="flex flex-col">
-                  <button type="button" onClick={() => onChange(move(items, i, i - 1))} disabled={i === 0} aria-label="Naikkan" className="grid size-4 place-items-center text-ink-400 hover:text-ink-900 disabled:opacity-30"><ChevronUp className="size-3.5" /></button>
-                  <button type="button" onClick={() => onChange(move(items, i, i + 1))} disabled={i === items.length - 1} aria-label="Turunkan" className="grid size-4 place-items-center text-ink-400 hover:text-ink-900 disabled:opacity-30"><ChevronDown className="size-3.5" /></button>
-                </span>
+                <Reorder
+                  onUp={() => onChange(move(items, i, i - 1))}
+                  onDown={() => onChange(move(items, i, i + 1))}
+                  upDisabled={i === 0}
+                  downDisabled={i === items.length - 1}
+                />
                 {allowChildren ? (
                   <IconButton size="sm" label={`Tambah ${childLabel}`} onClick={() => update(i, { children: [...(item.children ?? []), { label: '', href: '' }] })}>
                     <CornerDownRight className="size-3.5" />
@@ -85,10 +123,13 @@ export function MenuEditor({
                       <input value={child.href} onChange={(e) => update(i, { children: item.children!.map((c, m) => (m === k ? { ...c, href: e.target.value } : c)) })} list="ksp-routes" placeholder="/produk/pinjaman" className={`${inputCls} mono !py-2 text-[13px]`} aria-label="Tautan" />
                     </div>
                     <span className="flex shrink-0 items-center">
-                      <span className="flex flex-col">
-                        <button type="button" onClick={() => update(i, { children: move(item.children!, k, k - 1) })} disabled={k === 0} aria-label="Naikkan" className="grid size-4 place-items-center text-ink-400 hover:text-ink-900 disabled:opacity-30"><ChevronUp className="size-3.5" /></button>
-                        <button type="button" onClick={() => update(i, { children: move(item.children!, k, k + 1) })} disabled={k === item.children!.length - 1} aria-label="Turunkan" className="grid size-4 place-items-center text-ink-400 hover:text-ink-900 disabled:opacity-30"><ChevronDown className="size-3.5" /></button>
-                      </span>
+                      <Reorder
+                        compact
+                        onUp={() => update(i, { children: move(item.children!, k, k - 1) })}
+                        onDown={() => update(i, { children: move(item.children!, k, k + 1) })}
+                        upDisabled={k === 0}
+                        downDisabled={k === item.children!.length - 1}
+                      />
                       <IconButton size="sm" label="Hapus" onClick={() => update(i, { children: item.children!.filter((_, m) => m !== k) })} className="hover:!text-red-600"><Trash2 className="size-3.5" /></IconButton>
                     </span>
                   </li>

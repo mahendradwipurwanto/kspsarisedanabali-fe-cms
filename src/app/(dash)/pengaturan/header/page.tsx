@@ -41,7 +41,9 @@ export default function HeaderSettingsPage() {
   async function saveAll() {
     setSaving(true)
     try {
-      const bad = items.filter((i) => !i.label.trim() || !i.href.trim())
+      // A link is required unless the item is a group that only opens a
+      // submenu; those carry no address of their own.
+      const bad = items.filter((i) => !i.label.trim() || (!i.href.trim() && !i.children?.length))
       if (bad.length) { toast.warning('Ada item menu yang belum lengkap', { description: 'Setiap item butuh label dan tautan.' }); return }
       // The menu save carries the website's answer; the settings save must not
       // then claim success over it.
