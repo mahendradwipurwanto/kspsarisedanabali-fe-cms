@@ -23,7 +23,7 @@ const FIELDS: TableField<Branch>[] = [
   { key: 'whatsapp', label: 'WhatsApp', type: 'text', width: 150, hint: 'Contoh: 081337168194' },
   { key: 'latitude', label: 'Latitude', type: 'number', width: 130, required: true, hint: 'Contoh: -8.4231' },
   { key: 'longitude', label: 'Longitude', type: 'number', width: 130, required: true, hint: 'Contoh: 115.4712' },
-  { key: 'isActive', label: 'Tampil di web', type: 'boolean', width: 120 },
+  { key: 'isActive', label: 'Tampil di web', type: 'boolean', width: 120, defaultValue: true },
   { key: 'slug', label: 'Slug', type: 'text', width: 180, required: true },
 ]
 

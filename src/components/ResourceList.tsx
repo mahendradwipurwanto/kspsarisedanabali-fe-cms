@@ -88,7 +88,10 @@ export function ResourceList<T extends { id: string }>({
     setSaving(true)
     setSheetError('')
     try {
-      const payload = transformOut ? transformOut(record.values) : record.values
+      const cleaned = Object.fromEntries(
+        Object.entries(record.values).filter(([, v]) => v !== undefined && v !== null),
+      )
+      const payload = transformOut ? transformOut(cleaned) : cleaned
       if (record.row) await api.patch(`${endpoint}/${record.row.id}`, payload)
       else await api.post(endpoint, payload)
       setRecord(null)

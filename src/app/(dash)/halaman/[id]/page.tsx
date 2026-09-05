@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/auth-context'
 import { BlockForm } from '@/components/BlockForm'
 import { BlockList } from '@/components/BlockList'
 import { PreviewPanel } from '@/components/PreviewPanel'
+import { BlockDataSource } from '@/components/block-sources'
 import { Button, Card, Field, inputCls, Alert, Spinner, Pill, Modal, Kbd, Segmented, Switch } from '@/components/ui'
 
 interface Block { id?: string; type: string; props: Record<string, unknown>; isVisible: boolean }
@@ -289,6 +290,7 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
                   <p className="mono text-[11px] text-ink-400">blok {String(active + 1).padStart(2, '0')} · {currentDef.category.toLowerCase()}</p>
                   <h2 className="mt-0.5 text-[16px] font-bold text-ink-900">{currentDef.label}</h2>
                   <p className="mt-0.5 text-[12.5px] text-ink-500">{currentDef.description}</p>
+                  <BlockDataSource type={current.type} />
                 </div>
                 <div className="flex shrink-0 gap-1.5">
                   <Button size="sm" variant="secondary" onClick={() => setBlocks(blocks.map((b, i) => (i === active ? { ...b, isVisible: !b.isVisible } : b)))}>

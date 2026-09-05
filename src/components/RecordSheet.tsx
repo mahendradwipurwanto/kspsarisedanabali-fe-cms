@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import { ImagePlus, Trash2, X } from 'lucide-react'
+import { ImagePlus, Trash2, Upload, X, FileText } from 'lucide-react'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from './ui/sheet'
 import { Button, IconButton, inputCls, selectCls, Field, Switch, Alert } from './ui'
 import { MediaPicker } from './MediaPicker'
+import { toast } from 'sonner'
+import { uploadDocument } from '@/lib/api'
 import { mediaSrc } from '@/lib/api'
-import { fieldValue, type TableField } from './fields'
+import { fieldValue, isNumeric, type TableField } from './fields'
 
 function ImageInput({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
   const [open, setOpen] = useState(false)
@@ -36,6 +38,43 @@ function ImageInput({ value, onChange, disabled }: { value: string; onChange: (v
       )}
       <MediaPicker open={open} onClose={() => setOpen(false)} value={value} onSelect={(m) => { onChange(m.key); setOpen(false) }} />
     </>
+  )
+}
+
+/** Upload a document straight to storage and keep only its key on the record. */
+function FileInput({ value, onChange, disabled }: { value: string; onChange: (v: string, size?: number) => void; disabled?: boolean }) {
+  const [busy, setBusy] = useState(false)
+
+  async function pick(file: File) {
+    setBusy(true)
+    try {
+      const res = await uploadDocument(file)
+      onChange(res.key, res.size)
+      toast.success('Berkas terunggah')
+    } catch (e) {
+      toast.error('Gagal mengunggah berkas', { description: (e as Error).message })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="grid gap-2">
+      {value ? (
+        <div className="flex items-center gap-3 rounded-[var(--radius-input)] border border-line bg-white p-2.5">
+          <FileText className="size-5 shrink-0 text-ink-400" />
+          <span className="mono min-w-0 flex-1 truncate text-[12px] text-ink-600">{value}</span>
+          {!disabled ? <IconButton label="Hapus berkas" onClick={() => onChange('')} className="hover:!text-red-600"><X className="size-4" /></IconButton> : null}
+        </div>
+      ) : null}
+      {!disabled ? (
+        <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-[var(--radius-input)] border border-dashed border-line-strong bg-paper px-4 py-3.5 text-[13px] font-semibold text-ink-600 hover:border-ink-900 hover:text-ink-900 ${busy ? 'pointer-events-none opacity-60' : ''}`}>
+          <Upload className="size-4" aria-hidden="true" />
+          {busy ? 'Mengunggah…' : value ? 'Ganti berkas' : 'Unggah berkas (PDF, DOC)'}
+          <input type="file" accept=".pdf,.doc,.docx,application/pdf" className="sr-only" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f) }} />
+        </label>
+      ) : null}
+    </div>
   )
 }
 
@@ -102,6 +141,12 @@ export function RecordSheet<T extends { id: string }>({
                     </select>
                   ) : f.type === 'image' ? (
                     <ImageInput value={String(v ?? '')} onChange={(x) => set(f.key, x)} disabled={!canWrite} />
+                  ) : f.type === 'file' ? (
+                    <FileInput
+                      value={String(v ?? '')}
+                      disabled={!canWrite}
+                      onChange={(x, size) => onChange({ ...values, [f.key]: x, ...(size ? { fileSize: size } : {}) })}
+                    />
                   ) : f.type === 'number' || f.type === 'currency' || f.type === 'percent' ? (
                     <input
                       type="number"
@@ -139,6 +184,12 @@ export function RecordSheet<T extends { id: string }>({
 /** Values for the form: the row as it stands, or the field defaults for a new record. */
 export function recordValues<T extends { id: string }>(fields: TableField<T>[], row: T | null): Record<string, unknown> {
   const out: Record<string, unknown> = {}
-  for (const f of fields) out[f.key] = row ? fieldValue(row, f) : f.type === 'boolean' ? false : f.type === 'list' ? [] : ''
+  for (const f of fields) {
+    if (row) { out[f.key] = fieldValue(row, f); continue }
+    if (f.defaultValue !== undefined) { out[f.key] = f.defaultValue; continue }
+    // A number left blank must be omitted, not sent as "", which the API
+    // rejects with "Expected number, received string".
+    out[f.key] = f.type === 'boolean' ? false : f.type === 'list' ? [] : isNumeric(f.type) ? undefined : ''
+  }
   return out
 }

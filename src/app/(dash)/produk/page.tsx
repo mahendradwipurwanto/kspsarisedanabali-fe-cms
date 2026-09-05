@@ -36,7 +36,7 @@ const FIELDS: TableField<Product>[] = [
     key: 'isVerified', label: 'Terverifikasi', type: 'boolean', width: 120,
     hint: 'Selama belum dicentang, website tidak menampilkan suku bunga produk ini dan kalkulator melewatinya.',
   },
-  { key: 'isActive', label: 'Tampil di web', type: 'boolean', width: 120 },
+  { key: 'isActive', label: 'Tampil di web', type: 'boolean', width: 120, defaultValue: true },
   { key: 'slug', label: 'Slug', type: 'text', width: 180, hint: 'Huruf kecil dan tanda hubung. Contoh: pinjaman-bunga-murah.', required: true },
   { key: 'rateNote', label: 'Catatan bunga', type: 'text', width: 220, hint: 'Contoh: 1,3% per bulan, metode flat.' },
   { key: 'summary', label: 'Ringkasan', type: 'longtext', panelOnly: true, hint: 'Muncul di kartu produk dan sebagai deskripsi Google.' },

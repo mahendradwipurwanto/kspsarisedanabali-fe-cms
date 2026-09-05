@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Check, Minus, MoreHorizontal, Pencil, Trash2, ExternalLink, Image as ImageIcon } from 'lucide-react'
+import { Check, Minus, MoreHorizontal, Pencil, Trash2, ExternalLink, FileText, Image as ImageIcon } from 'lucide-react'
 import { Badge } from './ui/badge'
 import { Checkbox } from './ui/checkbox'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 
 export type FieldType =
   | 'text' | 'longtext' | 'number' | 'currency' | 'percent'
-  | 'select' | 'boolean' | 'date' | 'list' | 'link' | 'image' | 'readonly'
+  | 'select' | 'boolean' | 'date' | 'list' | 'link' | 'image' | 'file' | 'readonly'
 
 export interface FieldOption {
   value: string
@@ -44,6 +44,8 @@ export interface TableField<T = Record<string, unknown>> {
   rows?: number
   /** Hidden by default; the reader can switch it on from the Kolom menu. */
   hiddenByDefault?: boolean
+  /** Starting value for a new record, matching what the API defaults to. */
+  defaultValue?: unknown
 }
 
 const idr = new Intl.NumberFormat('id-ID')
@@ -94,6 +96,17 @@ function Cell<T>({ row, field, primary }: { row: T; field: TableField<T>; primar
       <img src={mediaSrc(src)} alt="" className="size-9 rounded-[6px] border border-line object-cover" loading="lazy" />
     ) : (
       <span className="grid size-9 place-items-center rounded-[6px] border border-dashed border-line-strong text-ink-300"><ImageIcon className="size-4" /></span>
+    )
+  }
+
+  if (field.type === 'file') {
+    const key = String(v ?? '')
+    if (!key) return <span className="text-ink-300">—</span>
+    return (
+      <span className="inline-flex items-center gap-1.5 text-ink-700">
+        <FileText className="size-3.5 shrink-0 text-ink-400" />
+        <span className="truncate">{key.split('/').pop()}</span>
+      </span>
     )
   }
 

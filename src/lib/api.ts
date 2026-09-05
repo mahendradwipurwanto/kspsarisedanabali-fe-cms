@@ -108,17 +108,42 @@ export async function logout() {
   accessToken = null
 }
 
+/**
+ * Documents (PDF, DOC) go straight to storage and are referenced by key from
+ * the `documents` table, so unlike an image they never enter the media library.
+ */
+export async function uploadDocument(file: File) {
+  const saved = await putThroughApi(file, 'documents')
+  return { ...saved, filename: file.name }
+}
+
+/**
+ * Send the bytes to the API and let it write them to storage.
+ *
+ * A presigned PUT straight from the browser needs a CORS rule on the bucket;
+ * without one the browser blocks the request before it leaves, and every upload
+ * fails with nothing in the network log but a CORS error.
+ */
+async function putThroughApi(file: File, folder: 'media' | 'documents') {
+  const res = await fetch(`${BASE}/v1/media/upload`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'content-type': file.type || 'application/octet-stream',
+      'x-filename': encodeURIComponent(file.name).replace(/%20/g, ' '),
+      'x-folder': folder,
+      ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: file,
+  })
+  const json = (await res.json().catch(() => ({}))) as { data?: { key: string; size: number }; error?: { message?: string } }
+  if (!res.ok || !json.data) throw new ApiError(res.status, json.error?.message ?? 'Gagal mengunggah berkas.')
+  return json.data
+}
+
 /** Direct-to-storage upload: presign → PUT → confirm. */
 export async function uploadFile(file: File, folder: 'media' | 'documents' = 'media', alt = '') {
-  const presign = await api.post<{ data: { url: string; key: string; headers: Record<string, string> } }>('/media/presign', {
-    filename: file.name,
-    contentType: file.type,
-    size: file.size,
-    folder,
-  })
-
-  const put = await fetch(presign.data.url, { method: 'PUT', body: file, headers: presign.data.headers })
-  if (!put.ok) throw new ApiError(put.status, 'Gagal mengunggah berkas ke penyimpanan.')
+  const saved = await putThroughApi(file, folder)
 
   // Reading intrinsic dimensions client-side avoids an image library on the server.
   const dims = await new Promise<{ width?: number; height?: number }>((resolve) => {
@@ -131,7 +156,7 @@ export async function uploadFile(file: File, folder: 'media' | 'documents' = 'me
   })
 
   return api.post<{ data: { id: string; key: string; url: string } }>('/media/confirm', {
-    key: presign.data.key,
+    key: saved.key,
     filename: file.name,
     contentType: file.type,
     size: file.size,

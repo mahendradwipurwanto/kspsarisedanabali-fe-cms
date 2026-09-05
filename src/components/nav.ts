@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   LayoutDashboard, Users, FileText, Newspaper, Image, Package, MapPin, Settings2,
   ShieldCheck, UserCog, PanelTop, PanelBottom, Search, Landmark, Building2,
+  FileDown, TrendingUp, Quote, HelpCircle, Briefcase,
 } from 'lucide-react'
 
 export interface NavItem { label: string; href: string; icon: LucideIcon; group: string; perms: string[]; exact?: boolean }
@@ -21,6 +22,12 @@ export const NAV: NavItem[] = [
   { label: 'Media', href: '/media', icon: Image, group: 'Konten', perms: ['media:read'] },
   { label: 'Produk', href: '/produk', icon: Package, group: 'Konten', perms: ['products:read'] },
   { label: 'Kantor', href: '/kantor', icon: MapPin, group: 'Konten', perms: ['branches:read'] },
+  // The records the page blocks draw from, each one edited on its own screen.
+  { label: 'Dokumen', href: '/dokumen', icon: FileDown, group: 'Konten', perms: ['pages:read'] },
+  { label: 'Pencapaian', href: '/pencapaian', icon: TrendingUp, group: 'Konten', perms: ['pages:read'] },
+  { label: 'Testimoni', href: '/testimoni', icon: Quote, group: 'Konten', perms: ['pages:read'] },
+  { label: 'Tanya Jawab', href: '/tanya-jawab', icon: HelpCircle, group: 'Konten', perms: ['pages:read'] },
+  { label: 'Lowongan', href: '/lowongan', icon: Briefcase, group: 'Konten', perms: ['jobs:read'] },
 
   { label: 'Identitas', href: '/pengaturan', icon: Landmark, group: 'Website', perms: ['settings:manage'], exact: true },
   { label: 'Header & Menu', href: '/pengaturan/header', icon: PanelTop, group: 'Website', perms: ['settings:manage', 'menus:manage'] },
