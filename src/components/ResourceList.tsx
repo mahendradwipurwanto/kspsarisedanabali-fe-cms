@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth-context'
 import { PageHeader, Empty, Button, Pill } from './ui'
 import { DataTable } from './DataTable'
 import { RecordSheet, recordValues } from './RecordSheet'
-import { buildColumns, csvFromRows, defaultHidden, fieldText, type TableField } from './fields'
+import { buildColumns, csvFromRows, defaultHidden, fieldText, type FieldOption, type TableField } from './fields'
 
 /**
  * Shared table screen for the flat content types (produk, berita, kantor, …).
@@ -16,7 +16,7 @@ import { buildColumns, csvFromRows, defaultHidden, fieldText, type TableField } 
  * appears in both. The table reads; the sheet writes.
  */
 export function ResourceList<T extends { id: string }>({
-  title, subtitle, endpoint, viewKey, fields, writePermission, emptyBody, emptyIcon,
+  title, subtitle, endpoint, viewKey, fields: rawFields, writePermission, emptyBody, emptyIcon,
   transformOut, canCreate = true, canDelete = true, recordTitle, panelNote, headerAction,
 }: {
   title: string
@@ -57,6 +57,37 @@ export function ResourceList<T extends { id: string }>({
   }, [endpoint, title])
 
   useEffect(() => { void load() }, [load])
+
+  // Fields that point at another collection get their options from it. Loaded
+  // once per screen; a failure leaves the select empty rather than the screen
+  // broken, and the record still saves without that field.
+  const [linked, setLinked] = useState<Record<string, FieldOption[]>>({})
+  const linkedKey = rawFields.filter((f) => f.optionsEndpoint).map((f) => `${f.key}:${f.optionsEndpoint}`).join('|')
+
+  useEffect(() => {
+    if (!linkedKey) return
+    let cancelled = false
+    void (async () => {
+      const entries = await Promise.all(
+        linkedKey.split('|').map(async (pair) => {
+          const [key, endpoint] = [pair.slice(0, pair.indexOf(':')), pair.slice(pair.indexOf(':') + 1)]
+          try {
+            const r = await api.get<{ data: Record<string, unknown>[] }>(`${endpoint}?limit=200`)
+            return [key, r.data.map((o) => ({ value: String(o.id), label: String(o.name ?? o.title ?? o.id) }))] as const
+          } catch {
+            return [key, [] as FieldOption[]] as const
+          }
+        }),
+      )
+      if (!cancelled) setLinked(Object.fromEntries(entries))
+    })()
+    return () => { cancelled = true }
+  }, [linkedKey])
+
+  const fields = useMemo(
+    () => rawFields.map((f) => (f.optionsEndpoint ? { ...f, options: [...(f.emptyOption ? [f.emptyOption] : []), ...(linked[f.key] ?? [])] } : f)),
+    [rawFields, linked],
+  )
 
   const openNew = useCallback(() => { setSheetError(''); setRecord({ row: null, values: recordValues(fields, null) }) }, [fields])
   const openRow = useCallback((row: T) => { setSheetError(''); setRecord({ row, values: recordValues(fields, row) }) }, [fields])

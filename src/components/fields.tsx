@@ -28,6 +28,15 @@ export interface TableField<T = Record<string, unknown>> {
   type: FieldType
   width?: number
   options?: FieldOption[]
+  /**
+   * Load the select's options from a collection instead of listing them here,
+   * for a field that points at another record: `/post-categories` fills the
+   * category picker on Berita, so a category added on its own screen is offered
+   * straight away rather than after a code change.
+   */
+  optionsEndpoint?: string
+  /** Prepended to the loaded options, for "no category" and the like. */
+  emptyOption?: FieldOption
   required?: boolean
   hint?: string
   placeholder?: string

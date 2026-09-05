@@ -6,6 +6,7 @@ import { ResourceList, type TableField } from '@/components/ResourceList'
 interface Post {
   id: string; title: string; slug: string; status: string; publishedAt: string | null
   excerpt?: string | null; content?: string | null; coverImage?: string | null
+  categoryId?: string | null
 }
 
 const FIELDS: TableField<Post>[] = [
@@ -13,6 +14,12 @@ const FIELDS: TableField<Post>[] = [
   {
     key: 'status', label: 'Status', type: 'select', width: 120,
     options: [{ value: 'draft', label: 'Draf', variant: 'secondary' }, { value: 'review', label: 'Review', variant: 'warning' }, { value: 'published', label: 'Terbit', variant: 'success' }],
+  },
+  {
+    key: 'categoryId', label: 'Kategori', type: 'select', width: 170,
+    optionsEndpoint: '/post-categories',
+    emptyOption: { value: '', label: 'Tanpa kategori' },
+    hint: 'Tampil sebagai label di halaman berita. Kategorinya dikelola di menu Kategori Berita.',
   },
   { key: 'publishedAt', label: 'Tanggal terbit', type: 'date', width: 150 },
   { key: 'coverImage', label: 'Sampul', type: 'image', width: 80 },
@@ -33,6 +40,8 @@ export default function PostsPage() {
       emptyBody="Tulis berita pertama agar pengunjung melihat aktivitas koperasi."
       fields={FIELDS}
       recordTitle={(r) => r.title}
+      // An empty picker means "no category"; the API stores that as null.
+      transformOut={(v) => ({ ...v, categoryId: v.categoryId ? v.categoryId : null })}
     />
   )
 }
