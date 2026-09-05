@@ -1,69 +1,36 @@
 'use client'
 
+import Link from 'next/link'
 import { Plus, Trash2 } from 'lucide-react'
 import { useSettings } from '@/lib/use-settings'
 import { Card, PageHeader, Spinner, Button, Field, inputCls, IconButton, SectionTitle } from '@/components/ui'
 
-interface Profile { about: string; vision: string; mission: string; missionPoints: { letter: string; text: string }[]; goals: string[] }
 interface LegalRow { label: string; value: string; date: string }
 interface OrgGroup { title: string; members: { name: string; role?: string }[] }
-
-const PROFILE_EMPTY: Profile = { about: '', vision: '', mission: '', missionPoints: [], goals: [] }
 
 export default function ProfileSettingsPage() {
   const s = useSettings()
   if (s.loading) return <Spinner />
 
-  const profile = s.group<Profile>('profile', PROFILE_EMPTY)
   const legal = s.group<LegalRow[]>('legal', [])
   const org = s.group<OrgGroup[]>('organization', [])
-  const setProfile = (next: Partial<Profile>) => s.setGroup('profile', { ...profile, ...next })
 
   return (
     <>
       <PageHeader
         eyebrow="Website"
         title="Profil & legalitas"
-        subtitle="Cerita koperasi, visi-misi, legalitas, dan susunan organisasi. Dipakai di halaman Tentang Kami dan footer."
-        action={<Button variant="dark" onClick={() => void s.save(['profile', 'legal', 'organization'])} loading={s.saving} disabled={!s.dirty}>Simpan perubahan</Button>}
+        subtitle="Legalitas dan susunan organisasi koperasi. Dipakai di footer, bilah legalitas, dan blok Struktur Organisasi."
+        action={<Button variant="dark" onClick={() => void s.save(['legal', 'organization'])} loading={s.saving} disabled={!s.dirty}>Simpan perubahan</Button>}
       />
 
       <div className="grid gap-5">
-        <Card title="Profil">
-          <div className="grid gap-4">
-            <Field label="Tentang koperasi" hint="Satu atau dua paragraf."><textarea rows={4} value={profile.about} onChange={(e) => setProfile({ about: e.target.value })} className={inputCls} /></Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Visi"><textarea rows={3} value={profile.vision} onChange={(e) => setProfile({ vision: e.target.value })} className={inputCls} /></Field>
-              <Field label="Misi"><textarea rows={3} value={profile.mission} onChange={(e) => setProfile({ mission: e.target.value })} className={inputCls} /></Field>
-            </div>
-
-            <div>
-              <SectionTitle hint="Huruf dan penjelasan, misalnya P — Prioritas layanan.">Poin misi</SectionTitle>
-              <ul className="grid gap-2">
-                {profile.missionPoints.map((p, i) => (
-                  <li key={i} className="flex gap-2">
-                    <input value={p.letter} maxLength={2} onChange={(e) => setProfile({ missionPoints: profile.missionPoints.map((x, j) => (j === i ? { ...x, letter: e.target.value.toUpperCase() } : x)) })} className={`${inputCls} mono w-14 text-center`} aria-label="Huruf" />
-                    <input value={p.text} onChange={(e) => setProfile({ missionPoints: profile.missionPoints.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)) })} className={inputCls} aria-label="Penjelasan" />
-                    <IconButton label="Hapus" onClick={() => setProfile({ missionPoints: profile.missionPoints.filter((_, j) => j !== i) })} className="mt-1 hover:!text-red-600"><Trash2 className="size-4" /></IconButton>
-                  </li>
-                ))}
-              </ul>
-              <Button variant="secondary" size="sm" className="mt-2" onClick={() => setProfile({ missionPoints: [...profile.missionPoints, { letter: '', text: '' }] })}><Plus className="size-3.5" /> Poin</Button>
-            </div>
-
-            <div>
-              <SectionTitle>Tujuan</SectionTitle>
-              <ul className="grid gap-2">
-                {profile.goals.map((g, i) => (
-                  <li key={i} className="flex gap-2">
-                    <input value={g} onChange={(e) => setProfile({ goals: profile.goals.map((x, j) => (j === i ? e.target.value : x)) })} className={inputCls} aria-label={`Tujuan ${i + 1}`} />
-                    <IconButton label="Hapus" onClick={() => setProfile({ goals: profile.goals.filter((_, j) => j !== i) })} className="mt-1 hover:!text-red-600"><Trash2 className="size-4" /></IconButton>
-                  </li>
-                ))}
-              </ul>
-              <Button variant="secondary" size="sm" className="mt-2" onClick={() => setProfile({ goals: [...profile.goals, ''] })}><Plus className="size-3.5" /> Tujuan</Button>
-            </div>
-          </div>
+        <Card tone="paper" className="p-4">
+          <p className="text-[13px] leading-relaxed text-ink-600">
+            Cerita koperasi, visi, misi dan tujuan ditulis di halaman <strong className="text-ink-900">Tentang Kami</strong>, blok demi blok.
+            Buka <Link href="/halaman" className="font-semibold text-green-700 hover:underline">Halaman</Link> lalu pilih Tentang Kami.
+            Yang di bawah ini dipakai di footer dan blok Struktur Organisasi.
+          </p>
         </Card>
 
         <Card title="Legalitas" description="Tampil di footer dan bilah legalitas. Nomor badan hukum, tanggal pengesahan, dan sejenisnya.">

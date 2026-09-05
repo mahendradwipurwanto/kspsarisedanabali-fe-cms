@@ -26,7 +26,7 @@ export const NAV: NavItem[] = [
   { label: 'Header & Menu', href: '/pengaturan/header', icon: PanelTop, group: 'Website', perms: ['settings:manage', 'menus:manage'] },
   { label: 'Footer', href: '/pengaturan/footer', icon: PanelBottom, group: 'Website', perms: ['settings:manage', 'menus:manage'] },
   { label: 'SEO & Sosial', href: '/pengaturan/seo', icon: Search, group: 'Website', perms: ['settings:manage'] },
-  { label: 'Profil & Legalitas', href: '/pengaturan/profil', icon: Building2, group: 'Website', perms: ['settings:manage'] },
+  { label: 'Legalitas & Organisasi', href: '/pengaturan/profil', icon: Building2, group: 'Website', perms: ['settings:manage'] },
 
   { label: 'Pengguna', href: '/pengguna', icon: UserCog, group: 'Sistem', perms: ['users:read'] },
   { label: 'Peran & Hak Akses', href: '/peran', icon: ShieldCheck, group: 'Sistem', perms: ['roles:read', 'roles:manage'] },

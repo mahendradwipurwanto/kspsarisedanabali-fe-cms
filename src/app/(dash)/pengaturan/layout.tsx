@@ -8,7 +8,7 @@ const TABS = [
   { href: '/pengaturan/header', label: 'Header & Menu' },
   { href: '/pengaturan/footer', label: 'Footer' },
   { href: '/pengaturan/seo', label: 'SEO & Sosial' },
-  { href: '/pengaturan/profil', label: 'Profil & Legalitas' },
+  { href: '/pengaturan/profil', label: 'Legalitas & Organisasi' },
 ]
 
 /** Website settings are one workspace with tabs; the sidebar lists the same
