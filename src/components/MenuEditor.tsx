@@ -77,9 +77,11 @@ export function MenuEditor({
             onDrop={(e) => { e.preventDefault(); const from = dragging ?? Number(e.dataTransfer.getData('text/plain')); setDragging(null); setOver(null); if (!Number.isNaN(from)) onChange(move(items, from, i)) }}
             className={`relative min-w-0 rounded-[var(--radius-card)] border bg-white p-3 transition-[opacity] ${dragging === i ? 'opacity-40' : ''} ${isOver ? 'border-gold-400' : 'border-line'}`}
           >
-            <div className="flex items-start gap-2">
+            {/* The inputs keep a floor of 13rem; on a phone the buttons wrap under
+                them instead of squeezing a link path into a third of the row. */}
+            <div className="flex flex-wrap items-start gap-2">
               <span aria-hidden="true" className="mt-2.5 cursor-grab text-ink-300 active:cursor-grabbing"><GripVertical className="size-4" /></span>
-              <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+              <div className="grid min-w-0 shrink grow basis-52 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
                 <input value={item.label} onChange={(e) => update(i, { label: e.target.value })} placeholder="Label menu" className={inputCls} aria-label="Label menu" />
                 <span className="relative min-w-0">
                   <Link2 className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-400" aria-hidden="true" />
@@ -98,7 +100,7 @@ export function MenuEditor({
                   ) : null}
                 </span>
               </div>
-              <span className="flex shrink-0 items-center">
+              <span className="ml-auto flex shrink-0 items-center">
                 <Reorder
                   onUp={() => onChange(move(items, i, i - 1))}
                   onDown={() => onChange(move(items, i, i + 1))}
@@ -117,12 +119,12 @@ export function MenuEditor({
             {item.children?.length ? (
               <ul className="mt-2 grid gap-1.5 border-l-2 border-line pl-4 sm:ml-6">
                 {item.children.map((child, k) => (
-                  <li key={k} className="flex min-w-0 items-start gap-2">
-                    <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+                  <li key={k} className="flex min-w-0 flex-wrap items-start gap-2">
+                    <div className="grid min-w-0 shrink grow basis-48 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
                       <input value={child.label} onChange={(e) => update(i, { children: item.children!.map((c, m) => (m === k ? { ...c, label: e.target.value } : c)) })} placeholder={`Label ${childLabel}`} className={`${inputCls} !py-2 text-[13px]`} aria-label={`Label ${childLabel}`} />
                       <input value={child.href} onChange={(e) => update(i, { children: item.children!.map((c, m) => (m === k ? { ...c, href: e.target.value } : c)) })} list="ksp-routes" placeholder="/produk/pinjaman" className={`${inputCls} mono !py-2 text-[13px]`} aria-label="Tautan" />
                     </div>
-                    <span className="flex shrink-0 items-center">
+                    <span className="ml-auto flex shrink-0 items-center">
                       <Reorder
                         compact
                         onUp={() => update(i, { children: move(item.children!, k, k - 1) })}

@@ -67,10 +67,20 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
   const [loading, setLoading] = useState(true)
   const [dirty, setDirty] = useState(false)
 
+  // A block stored before a field existed has no value for it, and the website
+  // renders the registry default in its place. Show that same default here, or
+  // the editor sees an empty "Label kecil di atas" while the page says "Tata
+  // kelola". Only missing keys are filled: a field an editor emptied on
+  // purpose stays empty.
+  const withDefaults = (p: Page): Page => ({
+    ...p,
+    blocks: p.blocks.map((b) => ({ ...b, props: { ...defaultPropsFor(b.type), ...b.props } })),
+  })
+
   useEffect(() => {
     void api
       .get<{ data: Page; seo: { checks: SeoCheck[]; score: number } }>(`/pages/${id}`)
-      .then((r) => { setPage(r.data); setSeo(r.seo) })
+      .then((r) => { setPage(withDefaults(r.data)); setSeo(r.seo) })
       .catch((e) => setLoadError((e as Error).message))
       .finally(() => setLoading(false))
   }, [id])
