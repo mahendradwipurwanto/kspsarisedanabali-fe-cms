@@ -9,6 +9,7 @@ import { Card, PageHeader, Spinner, Empty, Button, Alert, inputCls, Badge, Segme
 import { DataTable } from '@/components/DataTable'
 import { RecordSheet, recordValues } from '@/components/RecordSheet'
 import { buildColumns, defaultHidden, fieldText, type TableField } from '@/components/fields'
+import { LP_URL as LP } from '@/lib/site'
 
 interface MediaItem {
   id: string; key: string; url: string; filename: string
@@ -16,7 +17,6 @@ interface MediaItem {
   size: number; width?: number | null; height?: number | null; createdAt?: string
 }
 
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 const kb = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.round(n / 1024)} KB`)
 
 const FIELDS: TableField<MediaItem>[] = [

@@ -6,8 +6,8 @@ import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { Card, PageHeader, Pill, Spinner, Empty, fmtRelative, fmtDate } from '@/components/ui'
 import { TrendChart, BarList } from '@/components/dashboard/Charts'
+import { LP_URL as LP } from '@/lib/site'
 
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 
 /* ─────────────────────────────────────────── shapes returned by the API ── */
 

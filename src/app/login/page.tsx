@@ -6,8 +6,8 @@ import { ArrowRight, Lock, ShieldCheck } from 'lucide-react'
 import { login } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { Button, Field, inputCls, Alert, Kbd } from '@/components/ui'
+import { LP_URL as LP } from '@/lib/site'
 
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 
 function Mark({ className = '' }: { className?: string }) {
   return (

@@ -1,6 +1,7 @@
 'use client'
 
 import { mediaSrc as resolveMedia } from '@/contracts'
+import { LP_URL } from './site'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001'
 
@@ -165,7 +166,7 @@ export async function uploadFile(file: File, folder: 'media' | 'documents' = 'me
   })
 }
 
-const LP_BASE = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
+const LP_BASE = LP_URL
 
 /**
  * Image fields store object keys; the website proxies them while the bucket

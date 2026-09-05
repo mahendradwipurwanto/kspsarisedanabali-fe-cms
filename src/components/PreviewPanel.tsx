@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Smartphone, Tablet, Monitor, RefreshCw, ExternalLink, X, PlugZap } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Button, Spinner, Alert, IconButton, Kbd } from '@/components/ui'
+import { LP_URL as LP, pointsAtSelf } from '@/lib/site'
 
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 
 /** Widths from the devices in the analytics: iPhone, iPad portrait, laptop. */
 const DEVICES = [
@@ -35,6 +35,8 @@ export function PreviewPanel({
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null)
   /** null while the website has not been probed yet. */
   const [siteUp, setSiteUp] = useState<boolean | null>(null)
+  /** The address points back at the console, which browsers refuse to frame. */
+  const [selfFramed, setSelfFramed] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   const draftRef = useRef(draft)
@@ -44,6 +46,15 @@ export function PreviewPanel({
     setLoading(true)
     setError(null)
     try {
+      // Checked before the frame is drawn: the console sends X-Frame-Options
+      // DENY, so pointing the preview at the console's own address produces
+      // "refused to connect" naming the console, which reads like the website
+      // is down rather than like a setting is wrong.
+      if (pointsAtSelf(window.location.origin)) {
+        setSelfFramed(true)
+        return
+      }
+      setSelfFramed(false)
       // The preview renders inside the website, so a stopped or misconfigured
       // website shows the browser's own error page inside the frame with no
       // explanation. Probe it first and say what is wrong.
@@ -118,7 +129,27 @@ export function PreviewPanel({
       </header>
 
       <div className="scroll-thin flex-1 overflow-auto p-4">
-        {siteUp === false ? (
+        {selfFramed ? (
+          <div className="mx-auto max-w-lg pt-16 text-center text-white">
+            <span className="mx-auto grid size-12 place-items-center rounded-[var(--radius-tile)] bg-white/10 text-gold-300">
+              <PlugZap className="size-6" />
+            </span>
+            <h3 className="mt-4 text-[16px] font-bold">Alamat website belum diatur</h3>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-white/60">
+              Pratinjau menunjuk ke alamat konsol ini sendiri, bukan ke website. Peramban selalu
+              menolak menampilkan konsol di dalam bingkai, sehingga yang tampil hanya pesan
+              &ldquo;refused to connect&rdquo;.
+            </p>
+            <ul className="mono mt-4 grid gap-1.5 text-left text-[12px] text-white/55">
+              <li>1. Isi <span className="text-white/80">NEXT_PUBLIC_LP_URL</span> dengan alamat website, misalnya <span className="text-white/80">https://kspsarisedanabali.com</span></li>
+              <li>2. Nilainya tidak boleh kosong dan bukan alamat konsol</li>
+              <li>3. Bangun ulang konsol, karena nilai ini ditanam saat proses build</li>
+            </ul>
+            <Button variant="secondary" className="mt-5 !border-white/15 !bg-white/[0.06] !text-white hover:!bg-white/10" onClick={() => void refresh()} loading={loading}>
+              <RefreshCw className="size-3.5" /> Coba lagi
+            </Button>
+          </div>
+        ) : siteUp === false ? (
           <div className="mx-auto max-w-lg pt-16 text-center text-white">
             <span className="mx-auto grid size-12 place-items-center rounded-[var(--radius-tile)] bg-white/10 text-gold-300">
               <PlugZap className="size-6" />

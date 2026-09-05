@@ -3,10 +3,10 @@
 import { Facebook, Instagram, Youtube } from 'lucide-react'
 import { useSettings } from '@/lib/use-settings'
 import { Card, PageHeader, Spinner, Button, Field, inputCls } from '@/components/ui'
+import { LP_URL as LP } from '@/lib/site'
 
 interface SeoDefaults { titleTemplate: string; defaultTitle: string; defaultDescription: string }
 interface Social { facebook: string; instagram: string; youtube: string }
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 
 const Count = ({ n, lo, hi }: { n: number; lo: number; hi: number }) => (
   <span className={`tnum text-[11.5px] ${n === 0 ? 'text-ink-400' : n < lo || n > hi ? 'text-gold-600' : 'text-green-700'}`}>{n} / {hi}</span>

@@ -10,13 +10,13 @@ import { useAuth } from '@/lib/auth-context'
 import { PageHeader, Empty, Button, Modal, Field, inputCls, Alert, fmtRelative, Badge } from '@/components/ui'
 import { DataTable } from '@/components/DataTable'
 import { buildColumns, defaultHidden, fieldText, type TableField } from '@/components/fields'
+import { LP_URL as LP } from '@/lib/site'
 
 interface Row {
   id: string; title: string; slug: string; status: string; isSystem: boolean
   updatedAt: string; updatedByName?: string | null; blockCount: number
 }
 
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 const STATUS: Record<string, { label: string; variant: 'success' | 'warning' | 'secondary' }> = {
   published: { label: 'Terbit', variant: 'success' },
   review: { label: 'Menunggu review', variant: 'warning' },

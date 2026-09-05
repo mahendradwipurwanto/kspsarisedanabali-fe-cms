@@ -15,6 +15,7 @@ import { BlockList } from '@/components/BlockList'
 import { PreviewPanel } from '@/components/PreviewPanel'
 import { BlockDataSource } from '@/components/block-sources'
 import { Button, Card, Field, inputCls, Alert, Spinner, Pill, Modal, Kbd, Segmented, Switch } from '@/components/ui'
+import { LP_URL as LP } from '@/lib/site'
 
 interface Block { id?: string; type: string; props: Record<string, unknown>; isVisible: boolean }
 interface Page {
@@ -22,7 +23,6 @@ interface Page {
   seo: Record<string, string | boolean | undefined>; blocks: Block[]
 }
 
-const LP = process.env.NEXT_PUBLIC_LP_URL ?? 'http://localhost:3000'
 const CATEGORY_ICON = { Utama: LayoutTemplate, Konten: Type, Produk: Package, Konversi: Megaphone, Media: ImageIcon } as const
 
 /** Character counter coloured by the range that matters, not a bare "37/60". */
