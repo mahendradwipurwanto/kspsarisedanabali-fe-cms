@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { FileText, Pencil, ExternalLink, PanelTop, Copy } from 'lucide-react'
+import { FileText, Pencil, ExternalLink, PanelTop, Copy, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
@@ -83,7 +83,6 @@ export default function PagesList() {
       selectable: false,
       onEdit: open,
       editLabel: 'Buka editor',
-      onDelete: can('pages:delete') ? (row) => void remove(row) : undefined,
       extraActions: [
         {
           label: 'Lihat di website',
@@ -98,6 +97,17 @@ export default function PagesList() {
             toast.success('Alamat halaman disalin')
           },
         },
+        // A system page backs a route the site links to, so it can be edited
+        // but never deleted: the action is not offered on those rows.
+        ...(can('pages:delete')
+          ? [{
+              label: 'Hapus halaman',
+              icon: <Trash2 className="size-3.5" />,
+              variant: 'destructive' as const,
+              hidden: (row: Row) => row.isSystem,
+              onSelect: (row: Row) => void remove(row),
+            }]
+          : []),
       ],
     }),
     [can, open, remove],
@@ -142,7 +152,7 @@ export default function PagesList() {
 
       <p className="mt-3 flex flex-wrap items-center gap-1.5 text-[12.5px] text-ink-500">
         <Pencil className="size-3.5 text-ink-400" aria-hidden="true" />
-        Halaman baru tidak otomatis muncul di menu.
+        Halaman sistem bisa diubah tetapi tidak bisa dihapus. Halaman baru tidak otomatis muncul di menu.
         <Link href="/pengaturan/header" className="font-semibold text-green-700 hover:underline">Tambahkan ke menu navigasi</Link>
         agar pengunjung menemukannya.
       </p>
