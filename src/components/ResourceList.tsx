@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { api, ApiError } from '@/lib/api'
+import { toastSaved, type Refreshable } from '@/lib/saved'
 import { useAuth } from '@/lib/auth-context'
 import { PageHeader, Empty, Button, Pill } from './ui'
 import { DataTable } from './DataTable'
@@ -123,11 +124,12 @@ export function ResourceList<T extends { id: string }>({
         Object.entries(record.values).filter(([, v]) => v !== undefined && v !== null),
       )
       const payload = transformOut ? transformOut(cleaned) : cleaned
-      if (record.row) await api.patch(`${endpoint}/${record.row.id}`, payload)
-      else await api.post(endpoint, payload)
+      const res = record.row
+        ? await api.patch<Refreshable>(`${endpoint}/${record.row.id}`, payload)
+        : await api.post<Refreshable>(endpoint, payload)
       setRecord(null)
       await load()
-      toast.success(record.row ? 'Perubahan tersimpan' : `${title} baru ditambahkan`)
+      toastSaved(res, record.row ? 'Perubahan tersimpan' : `${title} baru ditambahkan`)
     } catch (err) {
       const e = err as ApiError
       const detail = Array.isArray(e.details) ? e.details.map((d) => `${d.field}: ${d.message}`).join(' · ') : undefined

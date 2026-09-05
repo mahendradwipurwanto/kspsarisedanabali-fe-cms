@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { BLOCK_LIST, getBlock, defaultPropsFor, type SeoCheck } from '@/contracts'
 import { api, ApiError, mediaSrc } from '@/lib/api'
+import { toastSaved, type Refreshable } from '@/lib/saved'
 import { useAuth } from '@/lib/auth-context'
 import { BlockForm } from '@/components/BlockForm'
 import { BlockList } from '@/components/BlockList'
@@ -153,13 +154,13 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
     if (!page || saving) return
     setSaving(true)
     try {
-      await api.patch(`/pages/${page.id}`, { title: page.title, slug: page.slug, seo: page.seo, blocks: page.blocks })
+      const saved = await api.patch<Refreshable>(`/pages/${page.id}`, { title: page.title, slug: page.slug, seo: page.seo, blocks: page.blocks })
       if (publish) {
-        await api.post(`/pages/${page.id}/publish`)
+        const res = await api.post<Refreshable>(`/pages/${page.id}/publish`)
         setPage((p) => (p ? { ...p, status: 'published' } : p))
-        toast.success('Halaman diterbitkan', { description: 'Perubahan sudah tampil di website.' })
+        toastSaved(res, 'Halaman diterbitkan', 'Perubahan sudah tampil di website.')
       } else {
-        toast.success('Draf tersimpan')
+        toastSaved(saved, 'Draf tersimpan')
       }
       setDirty(false)
     } catch (err) {

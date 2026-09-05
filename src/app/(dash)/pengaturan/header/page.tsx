@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { DEFAULT_HEADER, NAV_MAIN, type HeaderSettings, type MenuItem } from '@/contracts'
 import { api } from '@/lib/api'
+import { toastSaved, type Refreshable } from '@/lib/saved'
 import { useSettings } from '@/lib/use-settings'
 import { Card, PageHeader, Spinner, Button, Field, inputCls, Switch } from '@/components/ui'
 import { MenuEditor } from '@/components/MenuEditor'
@@ -17,7 +18,11 @@ function useMenu(key: string) {
   return {
     items, dirty,
     set: (next: MenuItem[]) => { setItems(next); setDirty(true) },
-    save: async (name: string) => { await api.put(`/menus/${key}`, { name, items: items ?? [] }); setDirty(false) },
+    save: async (name: string) => {
+      const res = await api.put<Refreshable>(`/menus/${key}`, { name, items: items ?? [] })
+      setDirty(false)
+      return res
+    },
   }
 }
 
@@ -38,8 +43,11 @@ export default function HeaderSettingsPage() {
     try {
       const bad = items.filter((i) => !i.label.trim() || !i.href.trim())
       if (bad.length) { toast.warning('Ada item menu yang belum lengkap', { description: 'Setiap item butuh label dan tautan.' }); return }
-      await menu.save('Menu utama')
-      await s.save(['header'], 'Header dan menu tersimpan. Website sudah diperbarui.')
+      // The menu save carries the website's answer; the settings save must not
+      // then claim success over it.
+      const res = await menu.save('Menu utama')
+      await s.save(['header'], 'Header dan menu tersimpan')
+      if (res?.refreshed === false) toastSaved(res, 'Header dan menu tersimpan')
     } catch (e) {
       toast.error('Gagal menyimpan menu', { description: (e as Error).message })
     } finally {

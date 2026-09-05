@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { DEFAULT_FOOTER, DEFAULT_FOOTER_MENU, type FooterSettings, type MenuItem } from '@/contracts'
 import { api } from '@/lib/api'
+import { toastSaved, type Refreshable } from '@/lib/saved'
 import { useSettings } from '@/lib/use-settings'
 import { Card, PageHeader, Spinner, Button, Field, inputCls, Switch } from '@/components/ui'
 import { MenuEditor } from '@/components/MenuEditor'
@@ -17,7 +18,11 @@ function useMenu(key: string) {
   return {
     items, dirty,
     set: (next: MenuItem[]) => { setItems(next); setDirty(true) },
-    save: async (name: string) => { await api.put(`/menus/${key}`, { name, items: items ?? [] }); setDirty(false) },
+    save: async (name: string) => {
+      const res = await api.put<Refreshable>(`/menus/${key}`, { name, items: items ?? [] })
+      setDirty(false)
+      return res
+    },
   }
 }
 
@@ -36,8 +41,9 @@ export default function FooterSettingsPage() {
   async function saveAll() {
     setSaving(true)
     try {
-      await menu.save('Menu footer')
-      await s.save(['footer'], 'Footer tersimpan. Website sudah diperbarui.')
+      const res = await menu.save('Menu footer')
+      await s.save(['footer'], 'Footer tersimpan')
+      if (res?.refreshed === false) toastSaved(res, 'Footer tersimpan')
     } catch (e) {
       toast.error('Gagal menyimpan menu footer', { description: (e as Error).message })
     } finally {

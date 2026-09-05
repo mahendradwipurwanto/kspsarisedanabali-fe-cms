@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { api } from './api'
+import { toastSaved, type Refreshable } from './saved'
 
 type Groups = Record<string, unknown>
 
@@ -37,14 +38,14 @@ export function useSettings() {
     setDirty(true)
   }, [])
 
-  const save = useCallback(async (keys: string[], successText = 'Tersimpan. Website sudah diperbarui.') => {
+  const save = useCallback(async (keys: string[], successText = 'Tersimpan') => {
     setSaving(true)
     try {
       const payload: Groups = {}
       for (const k of keys) if (settings[k] !== undefined) payload[k] = settings[k]
-      await api.put('/settings', payload)
+      const res = await api.put<Refreshable>('/settings', payload)
       setDirty(false)
-      toast.success(successText)
+      toastSaved(res, successText)
       return true
     } catch (e) {
       toast.error('Gagal menyimpan', { description: (e as Error).message })
