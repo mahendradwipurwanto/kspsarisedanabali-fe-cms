@@ -7,7 +7,7 @@ const TABS = [
   { href: '/pengaturan', label: 'Identitas', exact: true },
   { href: '/pengaturan/header', label: 'Header & Menu' },
   { href: '/pengaturan/footer', label: 'Footer' },
-  { href: '/pengaturan/seo', label: 'SEO & Sosial' },
+  { href: '/pengaturan/seo', label: 'SEO' },
   { href: '/pengaturan/profil', label: 'Legalitas & Organisasi' },
 ]
 

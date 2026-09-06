@@ -33,7 +33,7 @@ export const NAV: NavItem[] = [
   { label: 'Identitas', href: '/pengaturan', icon: Landmark, group: 'Website', perms: ['settings:manage'], exact: true },
   { label: 'Header & Menu', href: '/pengaturan/header', icon: PanelTop, group: 'Website', perms: ['settings:manage', 'menus:manage'] },
   { label: 'Footer', href: '/pengaturan/footer', icon: PanelBottom, group: 'Website', perms: ['settings:manage', 'menus:manage'] },
-  { label: 'SEO & Sosial', href: '/pengaturan/seo', icon: Search, group: 'Website', perms: ['settings:manage'] },
+  { label: 'SEO', href: '/pengaturan/seo', icon: Search, group: 'Website', perms: ['settings:manage'] },
   { label: 'Legalitas & Organisasi', href: '/pengaturan/profil', icon: Building2, group: 'Website', perms: ['settings:manage'] },
   { label: 'Aplikasi', href: '/pengaturan/aplikasi', icon: Smartphone, group: 'Website', perms: ['settings:manage'] },
 

@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { ImagePlus, X } from 'lucide-react'
-import { DEFAULT_BRAND, type BrandSettings } from '@/contracts'
+import { toast } from 'sonner'
+import { DEFAULT_BRAND, isValidPhone, isValidEmail, cleanPhoneInput, PHONE_ERROR, EMAIL_ERROR, type BrandSettings } from '@/contracts'
 import { useSettings } from '@/lib/use-settings'
 import { mediaSrc } from '@/lib/api'
 import { Card, PageHeader, Spinner, Button, Field, inputCls, IconButton } from '@/components/ui'
@@ -41,13 +42,26 @@ export default function IdentityPage() {
   const setSite = (k: keyof Site, v: string) => s.setGroup('site', { ...site, [k]: v })
   const setBrand = (k: keyof BrandSettings, v: string) => s.setGroup('brand', { ...brand, [k]: v })
 
+  // The WhatsApp number feeds wa.me links and the phone feeds tel: links, so a
+  // typo here breaks a button on every page. Checked before saving.
+  const problems = {
+    email: site.email.trim() && !isValidEmail(site.email) ? EMAIL_ERROR : undefined,
+    phone: site.phone.trim() && !isValidPhone(site.phone) ? PHONE_ERROR : undefined,
+    whatsapp: site.whatsapp.trim() && !isValidPhone(site.whatsapp) ? PHONE_ERROR : undefined,
+  }
+  const save = () => {
+    const first = Object.values(problems).find(Boolean)
+    if (first) { toast.warning('Ada kontak yang belum benar', { description: first }); return }
+    void s.save(['site', 'brand'])
+  }
+
   return (
     <>
       <PageHeader
         eyebrow="Website"
         title="Identitas"
         subtitle="Nama, logo dan kontak yang dipakai di seluruh halaman. Ubah sekali, berlaku di mana-mana."
-        action={<Button variant="dark" onClick={() => void s.save(['site', 'brand'])} loading={s.saving} disabled={!s.dirty}>Simpan perubahan</Button>}
+        action={<Button variant="dark" onClick={save} loading={s.saving} disabled={!s.dirty}>Simpan perubahan</Button>}
       />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -67,9 +81,9 @@ export default function IdentityPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Nama koperasi"><input value={site.name} onChange={(e) => setSite('name', e.target.value)} className={inputCls} /></Field>
               <Field label="Nama badan hukum"><input value={site.legalName} onChange={(e) => setSite('legalName', e.target.value)} className={inputCls} /></Field>
-              <Field label="Email"><input type="email" value={site.email} onChange={(e) => setSite('email', e.target.value)} className={inputCls} /></Field>
-              <Field label="Telepon utama"><input value={site.phone} onChange={(e) => setSite('phone', e.target.value)} className={`${inputCls} tnum`} /></Field>
-              <Field label="Nomor WhatsApp" hint="Dipakai tombol Hubungi Kami di seluruh website. Tulis tanpa spasi, contoh 081337168194."><input value={site.whatsapp} onChange={(e) => setSite('whatsapp', e.target.value)} className={`${inputCls} tnum`} /></Field>
+              <Field label="Email" error={problems.email}><input type="email" inputMode="email" value={site.email} onChange={(e) => setSite('email', e.target.value.trim())} placeholder="info@sarisedanabali.co.id" className={inputCls} /></Field>
+              <Field label="Telepon utama" hint="Angka saja. Contoh: 03665438200" error={problems.phone}><input type="tel" inputMode="numeric" maxLength={16} value={site.phone} onChange={(e) => setSite('phone', cleanPhoneInput(e.target.value))} className={`${inputCls} tnum`} /></Field>
+              <Field label="Nomor WhatsApp" hint="Dipakai tombol Hubungi Kami di seluruh website. Angka saja, contoh 081337168194." error={problems.whatsapp}><input type="tel" inputMode="numeric" maxLength={16} value={site.whatsapp} onChange={(e) => setSite('whatsapp', cleanPhoneInput(e.target.value))} className={`${inputCls} tnum`} /></Field>
             </div>
             <div className="mt-4">
               <Field label="Deskripsi singkat koperasi" hint="Satu paragraf. Dipakai sebagai deskripsi default di hasil pencarian Google.">

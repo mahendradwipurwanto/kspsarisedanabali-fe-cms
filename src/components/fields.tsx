@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
+import { isValidEmail, isValidPhone, isValidUrl, PHONE_ERROR, EMAIL_ERROR, URL_ERROR } from '@/contracts'
 import { Check, Minus, MoreHorizontal, Pencil, Trash2, ExternalLink, FileText, Image as ImageIcon } from 'lucide-react'
 import { Badge } from './ui/badge'
 import { Checkbox } from './ui/checkbox'
@@ -15,6 +16,26 @@ import { cn } from '@/lib/utils'
 export type FieldType =
   | 'text' | 'longtext' | 'number' | 'currency' | 'percent'
   | 'select' | 'boolean' | 'date' | 'list' | 'link' | 'image' | 'file' | 'readonly'
+  | 'tel' | 'email' | 'url'
+
+/**
+ * What a record form checks before it lets a save through. Phone, email and
+ * web addresses follow the same rules the website's forms and the API use, so
+ * a number staff type is one the site can dial.
+ */
+export function validateFields(fields: { key: string; label: string; type: FieldType; required?: boolean }[], values: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const f of fields) {
+    const v = values[f.key]
+    const text = typeof v === 'string' ? v.trim() : v == null ? '' : String(v)
+    if (f.required && (text === '' || (Array.isArray(v) && v.length === 0))) { out[f.key] = 'Wajib diisi'; continue }
+    if (!text) continue
+    if (f.type === 'tel' && !isValidPhone(text)) out[f.key] = PHONE_ERROR
+    if (f.type === 'email' && !isValidEmail(text)) out[f.key] = EMAIL_ERROR
+    if (f.type === 'url' && !isValidUrl(text)) out[f.key] = URL_ERROR
+  }
+  return out
+}
 
 export interface FieldOption {
   value: string

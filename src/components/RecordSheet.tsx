@@ -8,7 +8,8 @@ import { MediaPicker } from './MediaPicker'
 import { toast } from 'sonner'
 import { uploadDocument } from '@/lib/api'
 import { mediaSrc } from '@/lib/api'
-import { fieldValue, isNumeric, type TableField } from './fields'
+import { fieldValue, isNumeric, validateFields, type TableField } from './fields'
+import { cleanPhoneInput } from '@/contracts'
 
 function ImageInput({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
   const [open, setOpen] = useState(false)
@@ -102,8 +103,21 @@ export function RecordSheet<T extends { id: string }>({
   error?: string
   note?: ReactNode
 }) {
-  const set = (key: string, v: unknown) => onChange({ ...values, [key]: v })
   const editable = fields.filter((f) => f.type !== 'readonly' && !f.readOnly)
+  // Phone, email and web addresses are checked here before the API sees
+  // them, so the message sits under the field rather than in a toast.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const set = (key: string, v: unknown) => {
+    onChange({ ...values, [key]: v })
+    if (fieldErrors[key]) setFieldErrors((prev) => { const next = { ...prev }; delete next[key]; return next })
+  }
+  const submit = () => {
+    const problems = validateFields(editable, values)
+    setFieldErrors(problems)
+    const first = Object.values(problems)[0]
+    if (first) { toast.warning('Ada isian yang belum benar', { description: first }); return }
+    onSave()
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -122,7 +136,7 @@ export function RecordSheet<T extends { id: string }>({
                 return <Switch key={f.key} checked={Boolean(v)} onChange={(x) => set(f.key, x)} label={f.label} hint={f.hint} disabled={!canWrite} />
               }
               return (
-                <Field key={f.key} label={f.label} hint={f.hint} required={f.required}>
+                <Field key={f.key} label={f.label} hint={f.hint} required={f.required} error={fieldErrors[f.key]}>
                   {f.type === 'longtext' ? (
                     <textarea rows={f.rows ?? 4} value={String(v ?? '')} disabled={!canWrite} onChange={(e) => set(f.key, e.target.value)} className={inputCls} />
                   ) : f.type === 'list' ? (
@@ -157,6 +171,12 @@ export function RecordSheet<T extends { id: string }>({
                     />
                   ) : f.type === 'date' ? (
                     <input type="date" value={String(v ?? '').slice(0, 10)} disabled={!canWrite} onChange={(e) => set(f.key, e.target.value)} className={inputCls} />
+                  ) : f.type === 'tel' ? (
+                    <input type="tel" inputMode="numeric" maxLength={16} value={String(v ?? '')} disabled={!canWrite} placeholder={f.placeholder ?? '081234567890'} onChange={(e) => set(f.key, cleanPhoneInput(e.target.value))} className={`${inputCls} tnum`} />
+                  ) : f.type === 'email' ? (
+                    <input type="email" inputMode="email" value={String(v ?? '')} disabled={!canWrite} placeholder={f.placeholder ?? 'nama@email.com'} onChange={(e) => set(f.key, e.target.value.trim())} className={inputCls} />
+                  ) : f.type === 'url' ? (
+                    <input type="url" inputMode="url" value={String(v ?? '')} disabled={!canWrite} placeholder={f.placeholder ?? 'https://…'} onChange={(e) => set(f.key, e.target.value.trim())} className={`${inputCls} mono`} />
                   ) : (
                     <input value={String(v ?? '')} disabled={!canWrite} placeholder={f.placeholder} onChange={(e) => set(f.key, e.target.value)} className={`${inputCls} ${f.type === 'link' ? 'mono' : ''}`} />
                   )}
@@ -173,7 +193,7 @@ export function RecordSheet<T extends { id: string }>({
           ) : <span />}
           <span className="flex gap-2">
             <Button variant="secondary" onClick={() => onOpenChange(false)}>Tutup</Button>
-            {canWrite ? <Button variant="dark" onClick={onSave} loading={busy}>Simpan</Button> : null}
+            {canWrite ? <Button variant="dark" onClick={submit} loading={busy}>Simpan</Button> : null}
           </span>
         </SheetFooter>
       </SheetContent>

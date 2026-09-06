@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { DEFAULT_FOOTER, DEFAULT_FOOTER_MENU, type FooterSettings, type MenuItem } from '@/contracts'
+import { Facebook, Instagram, Youtube, Linkedin, Twitter, Music2, Send, type LucideIcon } from 'lucide-react'
+import { DEFAULT_FOOTER, DEFAULT_FOOTER_MENU, DEFAULT_SOCIAL, SOCIAL_PLATFORMS, isValidUrl, URL_ERROR, type FooterSettings, type MenuItem, type SocialSettings, type SocialKey } from '@/contracts'
 import { api } from '@/lib/api'
 import { toastSaved, type Refreshable } from '@/lib/saved'
 import { useSettings } from '@/lib/use-settings'
 import { Card, PageHeader, Spinner, Button, Field, inputCls, Switch } from '@/components/ui'
 import { MenuEditor } from '@/components/MenuEditor'
+
+const SOCIAL_ICON: Record<SocialKey, LucideIcon> = {
+  facebook: Facebook, instagram: Instagram, youtube: Youtube, tiktok: Music2, x: Twitter, linkedin: Linkedin, telegram: Send,
+}
 
 function useMenu(key: string) {
   const [items, setItems] = useState<MenuItem[] | null>(null)
@@ -34,15 +39,19 @@ export default function FooterSettingsPage() {
   if (s.loading || menu.items === null) return <Spinner />
 
   const footer = s.group<FooterSettings>('footer', DEFAULT_FOOTER)
+  const social = s.group<SocialSettings>('social', DEFAULT_SOCIAL)
   const set = <K extends keyof FooterSettings>(k: K, v: FooterSettings[K]) => s.setGroup('footer', { ...footer, [k]: v })
+  const setSocial = (k: SocialKey, v: string) => s.setGroup('social', { ...social, [k]: v })
   const items = menu.items
   const dirty = s.dirty || menu.dirty
+  const badSocial = SOCIAL_PLATFORMS.filter((p) => social[p.key]?.trim() && !isValidUrl(social[p.key]))
 
   async function saveAll() {
+    if (badSocial.length) { toast.warning('Tautan media sosial belum benar', { description: `${badSocial.map((p) => p.label).join(', ')}: ${URL_ERROR.toLowerCase()}` }); return }
     setSaving(true)
     try {
       const res = await menu.save('Menu footer')
-      await s.save(['footer'], 'Footer tersimpan')
+      await s.save(['footer', 'social'], 'Footer tersimpan')
       if (res?.refreshed === false) toastSaved(res, 'Footer tersimpan')
     } catch (e) {
       toast.error('Gagal menyimpan menu footer', { description: (e as Error).message })
@@ -80,6 +89,29 @@ export default function FooterSettingsPage() {
 
           <Card title="Kolom tautan" description="Setiap item teratas menjadi judul kolom; submenu-nya menjadi tautan di kolom itu.">
             <MenuEditor items={items} onChange={menu.set} childLabel="tautan" />
+          </Card>
+
+          <Card title="Media sosial" description="Ikon tampil di bawah deskripsi koperasi, hanya untuk akun yang diisi. Tautan yang sama dilaporkan ke Google sebagai profil resmi koperasi.">
+            <div className="grid gap-4">
+              <Switch checked={footer.showSocial} onChange={(v) => set('showSocial', v)} label="Tampilkan ikon media sosial di footer" />
+              <Field label="Judul kecil di atas ikon" hint="Kosongkan untuk menampilkan ikon saja.">
+                <input value={footer.socialHeading} onChange={(e) => set('socialHeading', e.target.value)} placeholder="Ikuti kami" className={inputCls} maxLength={40} />
+              </Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {SOCIAL_PLATFORMS.map((p) => {
+                  const IconCmp = SOCIAL_ICON[p.key]
+                  const value = social[p.key] ?? ''
+                  return (
+                    <Field key={p.key} label={p.label} error={value.trim() && !isValidUrl(value) ? URL_ERROR : undefined}>
+                      <span className="relative block">
+                        <IconCmp className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-400" aria-hidden="true" />
+                        <input value={value} onChange={(e) => setSocial(p.key, e.target.value)} placeholder={p.placeholder} inputMode="url" className={`${inputCls} mono pl-9`} />
+                      </span>
+                    </Field>
+                  )
+                })}
+              </div>
+            </div>
           </Card>
 
           <Card title="Kantor & catatan kaki">
