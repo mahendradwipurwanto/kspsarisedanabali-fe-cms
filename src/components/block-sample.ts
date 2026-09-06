@@ -37,8 +37,11 @@ function sampleFields(fields: FieldMap, image: string, depth: number, index = 0)
   const out: Record<string, unknown> = {}
   for (const [key, def] of Object.entries(fields)) {
     const v = sampleLeaf(def, key, image, depth)
-    // Number the items of a list so three of them do not read as one repeated.
-    out[key] = typeof v === 'string' && depth > 0 && (def.kind === 'text') && !def.default ? `${v} ${index + 1}` : v
+    // Number the items of a list so three of them do not read as one repeated;
+    // a placeholder such as "2002" or "Kasir" already reads as content and is
+    // left alone.
+    const fromLabel = def.kind === 'text' && !def.default && !def.placeholder
+    out[key] = typeof v === 'string' && depth > 0 && fromLabel ? `${v} ${index + 1}` : v
   }
   return out
 }

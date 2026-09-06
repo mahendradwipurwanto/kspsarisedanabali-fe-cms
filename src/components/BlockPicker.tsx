@@ -18,8 +18,6 @@ const FRAMES = {
   mobile: { width: 390, height: 780, icon: Smartphone, label: 'Ponsel' },
 } as const
 type FrameKey = keyof typeof FRAMES
-/** Height of the "Pratinjau · belum terbit" ribbon the website puts on every preview. */
-const RIBBON = 36
 const PANE = 420
 
 /**
@@ -92,7 +90,7 @@ export function BlockPicker({
   const blocked = (b: BlockDef) => Boolean(b.singleton && used.has(b.type))
   const f = FRAMES[frame]
   const scale = Math.min(1, PANE / f.width)
-  const visible = Math.round((f.height - RIBBON) * scale)
+  const visible = Math.round(f.height * scale)
 
   return (
     <Modal open={open} onClose={onClose} title="Tambah blok" description="Arahkan kursor ke sebuah blok untuk melihat tampilannya di website, lalu tambahkan. Blok masuk di urutan paling bawah dan bisa dipindah." size="2xl">
@@ -184,7 +182,7 @@ export function BlockPicker({
                       key={`${token}-${frame}`}
                       src={`${LP}/pratinjau/${token}`}
                       title={`Pratinjau ${focus.label}`}
-                      style={{ width: f.width, height: f.height, transform: `scale(${scale})`, transformOrigin: 'top left', marginTop: -RIBBON * scale }}
+                      style={{ width: f.width, height: f.height, transform: `scale(${scale})`, transformOrigin: 'top left' }}
                       className="border-0"
                     />
                   ) : null}
