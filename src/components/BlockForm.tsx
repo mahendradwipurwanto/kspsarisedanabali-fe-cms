@@ -4,7 +4,7 @@ import { useEffect, useState, type ComponentType } from 'react'
 import {
   ChevronDown, ChevronRight, ChevronUp, GripVertical, Plus, Trash2, ImagePlus, X, Link2, Copy,
   Sparkles, Calculator, MapPin, Phone, Users, TrendingUp, Wallet, Handshake, PiggyBank, Award, Star,
-  ShieldCheck, Building2, Percent, Briefcase, FileText, Mail, Clock, Compass, Leaf, Check,
+  ShieldCheck, Building2, Percent, Briefcase, FileText, Mail, Clock, Compass, Leaf, Check, Home, Newspaper,
 } from 'lucide-react'
 import { ICON_NAMES, type FieldDef, type FieldMap } from '@/contracts'
 import { api, mediaSrc } from '@/lib/api'
@@ -210,7 +210,7 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   spark: Sparkles, calculator: Calculator, 'map-pin': MapPin, phone: Phone, users: Users, 'trending-up': TrendingUp,
   wallet: Wallet, handshake: Handshake, 'piggy-bank': PiggyBank, award: Award, star: Star, 'shield-check': ShieldCheck,
   building: Building2, percent: Percent, briefcase: Briefcase, 'file-text': FileText, mail: Mail, clock: Clock,
-  compass: Compass, leaf: Leaf, check: Check,
+  compass: Compass, leaf: Leaf, check: Check, home: Home, newspaper: Newspaper,
 }
 
 function IconField({

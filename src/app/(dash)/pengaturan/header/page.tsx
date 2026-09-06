@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { DEFAULT_HEADER, NAV_MAIN, type HeaderSettings, type MenuItem } from '@/contracts'
+import { DEFAULT_HEADER, NAV_MAIN, BOTTOM_NAV_FIELDS, BOTTOM_NAV_MAX, type HeaderSettings, type MenuItem, type BottomNavItem } from '@/contracts'
+import { BlockForm } from '@/components/BlockForm'
 import { api } from '@/lib/api'
 import { toastSaved, type Refreshable } from '@/lib/saved'
 import { useSettings } from '@/lib/use-settings'
@@ -76,6 +77,18 @@ export default function HeaderSettingsPage() {
         <div className="grid min-w-0 gap-5">
           <Card title="Menu navigasi" description="Urutan di sini adalah urutan di website. Item dengan submenu tampil sebagai menu turun.">
             <MenuEditor items={items} onChange={menu.set} />
+          </Card>
+
+          <Card title="Menu bawah di ponsel" description={`Bar tetap di bagian bawah layar ponsel, di samping menu ☰. Maksimal ${BOTTOM_NAV_MAX} tombol; tablet dan komputer memakai menu di header.`}>
+            <div className="grid gap-4">
+              <Switch checked={header.showBottomNav} onChange={(v) => set('showBottomNav', v)} label="Tampilkan menu bawah di ponsel" hint="Bila dimatikan, ponsel hanya memakai menu ☰ di header." />
+              <BlockForm
+                fields={BOTTOM_NAV_FIELDS}
+                value={{ items: header.bottomNav }}
+                onChange={(v) => set('bottomNav', (Array.isArray(v.items) ? v.items : []) as BottomNavItem[])}
+                dense
+              />
+            </div>
           </Card>
 
           <Card title="Tombol & pengumuman">
