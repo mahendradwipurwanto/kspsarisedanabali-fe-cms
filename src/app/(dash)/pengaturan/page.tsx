@@ -7,6 +7,7 @@ import { DEFAULT_BRAND, isValidPhone, isValidEmail, cleanPhoneInput, PHONE_ERROR
 import { useSettings } from '@/lib/use-settings'
 import { mediaSrc } from '@/lib/api'
 import { Card, PageHeader, Spinner, Button, Field, inputCls, IconButton } from '@/components/ui'
+import { PreviewCard } from '@/components/PreviewCard'
 import { MediaPicker } from '@/components/MediaPicker'
 
 interface Site { name: string; legalName: string; tagline: string; description: string; email: string; phone: string; whatsapp: string }
@@ -94,7 +95,7 @@ export default function IdentityPage() {
         </div>
 
         <div className="grid h-fit min-w-0 gap-4 xl:sticky xl:top-20">
-          <Card title="Pratinjau merek" description="Kira-kira begini di header dan footer.">
+          <PreviewCard title="Pratinjau merek" description="Kira-kira begini di header dan footer.">
             <div className="grid gap-3">
               <div className="flex items-center gap-3 rounded-[var(--radius-tile)] border border-line bg-white p-3">
                 {brand.logo ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={mediaSrc(brand.logo)} alt="" className="h-9 object-contain" /> : <span className="grid size-9 place-items-center rounded-[6px] bg-green-600 text-white text-[12px] font-bold">SS</span>}
@@ -105,7 +106,7 @@ export default function IdentityPage() {
                 <span className="leading-tight"><span className="block text-[14px] font-extrabold text-white">{brand.name || 'Nama koperasi'}</span><span className="block text-[11px] text-white/50">{brand.tagline}</span></span>
               </div>
             </div>
-          </Card>
+          </PreviewCard>
           <Card tone="paper" className="p-4 text-[12.5px] leading-relaxed text-ink-500">
             Nomor WhatsApp dan telepon di sini adalah nomor <strong className="text-ink-700">koperasi</strong>. Nomor tiap kantor diatur di menu <strong className="text-ink-700">Kantor</strong>.
           </Card>

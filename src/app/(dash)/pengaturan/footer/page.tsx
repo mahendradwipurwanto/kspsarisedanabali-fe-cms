@@ -8,6 +8,7 @@ import { api } from '@/lib/api'
 import { toastSaved, type Refreshable } from '@/lib/saved'
 import { useSettings } from '@/lib/use-settings'
 import { Card, PageHeader, Spinner, Button, Field, inputCls, Switch } from '@/components/ui'
+import { PreviewCard } from '@/components/PreviewCard'
 import { MenuEditor } from '@/components/MenuEditor'
 
 const SOCIAL_ICON: Record<SocialKey, LucideIcon> = {
@@ -123,7 +124,7 @@ export default function FooterSettingsPage() {
         </div>
 
         <div className="h-fit min-w-0 xl:sticky xl:top-20">
-          <Card title="Pratinjau" description="Skema, bukan tampilan piksel.">
+          <PreviewCard note={<p className="mt-3 text-[12px] leading-relaxed text-ink-400">Untuk melihat hasil sebenarnya, simpan lalu buka website.</p>}>
             <div className="overflow-hidden rounded-[var(--radius-tile)] border border-line text-[9.5px]">
               <div className="bg-green-700 px-3 py-2.5 text-white">
                 <p className="text-[11px] font-bold">{footer.ctaHeading || 'Judul ajakan'}</p>
@@ -139,7 +140,7 @@ export default function FooterSettingsPage() {
               {footer.showBranches ? <div className="bg-ink-900 px-3 pb-2 text-white/45">▪ kantor ▪ kantor ▪ kantor</div> : null}
               <div className="bg-ink-950 px-3 py-1.5 text-white/40">© {new Date().getFullYear()} · {footer.bottomNote || 'catatan kaki'}</div>
             </div>
-          </Card>
+          </PreviewCard>
         </div>
       </div>
     </>

@@ -2,6 +2,7 @@
 
 import { useSettings } from '@/lib/use-settings'
 import { Card, PageHeader, Spinner, Button, Field, inputCls } from '@/components/ui'
+import { PreviewCard } from '@/components/PreviewCard'
 import { LP_URL as LP } from '@/lib/site'
 
 interface SeoDefaults { titleTemplate: string; defaultTitle: string; defaultDescription: string }
@@ -45,13 +46,13 @@ export default function SeoSettingsPage() {
         </div>
 
         <div className="h-fit min-w-0 xl:sticky xl:top-20">
-          <Card title="Tampilan di Google" description="Untuk halaman yang memakai nilai bawaan.">
+          <PreviewCard title="Tampilan di Google" description="Untuk halaman yang memakai nilai bawaan.">
             <div className="rounded-[var(--radius-tile)] border border-line bg-white p-3.5">
               <p className="flex items-center gap-2 text-[11.5px] text-ink-500"><span className="grid size-5 place-items-center rounded-full bg-green-600 text-[9px] font-bold text-white">S</span>{LP.replace(/^https?:\/\//, '')}</p>
               <p className="mt-1.5 truncate text-[16px] text-[#1a0dab]">{seo.defaultTitle || 'Judul bawaan belum diisi'}</p>
               <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-ink-600">{seo.defaultDescription || 'Deskripsi bawaan belum diisi. Google akan memilih kalimat acak dari halaman.'}</p>
             </div>
-          </Card>
+          </PreviewCard>
         </div>
       </div>
     </>

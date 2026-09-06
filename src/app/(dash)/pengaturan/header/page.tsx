@@ -7,6 +7,7 @@ import { api } from '@/lib/api'
 import { toastSaved, type Refreshable } from '@/lib/saved'
 import { useSettings } from '@/lib/use-settings'
 import { Card, PageHeader, Spinner, Button, Field, inputCls, Switch } from '@/components/ui'
+import { PreviewCard } from '@/components/PreviewCard'
 import { MenuEditor } from '@/components/MenuEditor'
 
 function useMenu(key: string) {
@@ -94,7 +95,7 @@ export default function HeaderSettingsPage() {
         </div>
 
         <div className="h-fit min-w-0 xl:sticky xl:top-20">
-          <Card title="Pratinjau" description="Skema, bukan tampilan piksel.">
+          <PreviewCard note={<p className="mt-3 text-[12px] leading-relaxed text-ink-400">Untuk melihat hasil sebenarnya, simpan lalu buka website.</p>}>
             <div className="overflow-hidden rounded-[var(--radius-tile)] border border-line">
               {header.announcement ? <div className="truncate bg-ink-900 px-3 py-1.5 text-center text-[10.5px] text-white/80">{header.announcement}</div> : null}
               <div className="flex items-center gap-2 bg-white px-3 py-2.5">
@@ -107,8 +108,7 @@ export default function HeaderSettingsPage() {
                 <span className="shrink-0 rounded-full bg-green-600 px-2 py-0.5 text-[9px] font-bold text-white">{header.ctaLabel || 'Tombol'}</span>
               </div>
             </div>
-            <p className="mt-3 text-[12px] leading-relaxed text-ink-400">Untuk melihat hasil sebenarnya, simpan lalu buka website.</p>
-          </Card>
+          </PreviewCard>
         </div>
       </div>
     </>
