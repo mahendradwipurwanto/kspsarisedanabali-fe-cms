@@ -64,7 +64,7 @@ export function PreviewCard({
           </div>
         }
       >
-        <div className="scroll-thin overflow-auto rounded-[var(--radius-tile)] bg-paper p-4">
+        <div className="scroll-thin max-h-[70vh] overflow-auto rounded-[var(--radius-tile)] bg-paper p-4">
           {/* `zoom` scales layout as well as paint, so the scheme reflows at the
               larger size instead of blurring the way a transform would. */}
           <div style={{ zoom }} className="mx-auto w-[360px]">
