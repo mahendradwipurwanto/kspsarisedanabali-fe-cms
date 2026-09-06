@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, Lock, ShieldCheck } from 'lucide-react'
-import { login } from '@/lib/api'
+import { login, loginMfa } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { Button, Field, inputCls, Alert, Kbd } from '@/components/ui'
 import { LP_URL as LP } from '@/lib/site'
@@ -23,6 +23,15 @@ function LoginForm() {
   const { reload } = useAuth()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  // Second step: the password was right and the account has an authenticator
+  // app; the API handed back a short-lived challenge to exchange for a code.
+  const [challenge, setChallenge] = useState<string | null>(null)
+  const [recovery, setRecovery] = useState(false)
+
+  async function finish(setupRequired: boolean) {
+    await reload()
+    router.replace(setupRequired ? '/akun?wajib=1' : params.get('next') || '/')
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -30,17 +39,70 @@ function LoginForm() {
     setError('')
     const fd = new FormData(e.currentTarget)
     try {
-      await login(String(fd.get('email')), String(fd.get('password')))
-      await reload()
-      router.replace(params.get('next') || '/')
+      const r = await login(String(fd.get('email')), String(fd.get('password')))
+      if (r.mfaRequired) { setChallenge(r.challenge); setBusy(false); return }
+      await finish(r.mfaSetupRequired)
     } catch (err) {
       setError((err as Error).message)
       setBusy(false)
     }
   }
 
+  async function onSubmitCode(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!challenge) return
+    setBusy(true)
+    setError('')
+    const code = String(new FormData(e.currentTarget).get('code') ?? '')
+    try {
+      const r = await loginMfa(challenge, code)
+      await finish(r.mfaSetupRequired)
+    } catch (err) {
+      const msg = (err as Error).message
+      setError(msg)
+      setBusy(false)
+      // An expired challenge means starting over with the password.
+      if (/kedaluwarsa|tidak berlaku/i.test(msg)) setChallenge(null)
+    }
+  }
+
+  if (challenge) {
+    return (
+      <form key="code" onSubmit={onSubmitCode} className="grid gap-4">
+        <p className="text-[13px] leading-relaxed text-ink-600">
+          {recovery
+            ? 'Masukkan salah satu kode pemulihan yang Anda simpan saat mengaktifkan verifikasi dua langkah. Kode hanya berlaku sekali.'
+            : 'Buka aplikasi autentikator di ponsel Anda dan masukkan kode 6 digit untuk akun ini.'}
+        </p>
+        <Field label={recovery ? 'Kode pemulihan' : 'Kode verifikasi'} required>
+          <input
+            name="code"
+            required
+            autoFocus
+            autoComplete="one-time-code"
+            inputMode={recovery ? 'text' : 'numeric'}
+            pattern={recovery ? undefined : '[0-9]{6}'}
+            maxLength={recovery ? 14 : 6}
+            placeholder={recovery ? 'xxxx-xxxx-xxxx' : '123456'}
+            className={`${inputCls} mono tracking-[0.3em]`}
+          />
+        </Field>
+        {error ? <Alert>{error}</Alert> : null}
+        <Button type="submit" variant="dark" className="w-full" loading={busy}>Verifikasi</Button>
+        <div className="flex items-center justify-between text-[12.5px]">
+          <button type="button" className="text-ink-500 underline-offset-4 hover:underline" onClick={() => { setRecovery((v) => !v); setError('') }}>
+            {recovery ? 'Pakai kode dari aplikasi' : 'Pakai kode pemulihan'}
+          </button>
+          <button type="button" className="text-ink-500 underline-offset-4 hover:underline" onClick={() => { setChallenge(null); setError('') }}>
+            Kembali
+          </button>
+        </div>
+      </form>
+    )
+  }
+
   return (
-    <form onSubmit={onSubmit} className="grid gap-4">
+    <form key="password" onSubmit={onSubmit} className="grid gap-4">
       <Field label="Email" required>
         <input name="email" type="email" required autoComplete="username" autoFocus className={inputCls} placeholder="nama@sarisedanabali.co.id" />
       </Field>

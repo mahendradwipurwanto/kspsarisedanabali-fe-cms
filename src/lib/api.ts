@@ -21,8 +21,49 @@ export interface AuthUser {
 let accessToken: string | null = null
 let refreshing: Promise<boolean> | null = null
 
+/**
+ * The session's signing key, also memory-only. Every authenticated request is
+ * signed with it, so an access token that leaks on its own opens nothing, and
+ * a captured request cannot be replayed with another body or after two minutes.
+ */
+let signingKey: string | null = null
+let signingMode: 'required' | 'optional' | 'off' = 'required'
+let sessionId: string | null = null
+
+export interface SessionEnvelope {
+  accessToken: string
+  user: AuthUser
+  expiresIn: number
+  session?: { id: string; signingKey: string; signing: 'required' | 'optional' | 'off'; idleMinutes: number; mfa: boolean }
+  mfaEnabled?: boolean
+  mfaSetupRequired?: boolean
+}
+
+function adopt(json: SessionEnvelope) {
+  accessToken = json.accessToken
+  if (json.session) { signingKey = json.session.signingKey; signingMode = json.session.signing; sessionId = json.session.id }
+}
+
 export const setToken = (t: string | null) => { accessToken = t }
 export const getToken = () => accessToken
+export const currentSessionId = () => sessionId
+
+const enc = new TextEncoder()
+const hex = (buf: ArrayBuffer) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('')
+const b64url = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+
+/** HMAC-SHA256 over method, path+query, timestamp, nonce and the body's SHA-256 — what the API recomputes. */
+async function signHeaders(method: string, pathWithQuery: string, body?: string | ArrayBuffer): Promise<Record<string, string>> {
+  if (!signingKey || signingMode === 'off' || typeof crypto === 'undefined' || !crypto.subtle) return {}
+  const ts = String(Date.now())
+  const nonce = crypto.randomUUID().replace(/-/g, '')
+  const bytes = body === undefined ? new Uint8Array() : typeof body === 'string' ? enc.encode(body) : new Uint8Array(body)
+  const bodyHash = hex(await crypto.subtle.digest('SHA-256', bytes))
+  const canonical = `${method.toUpperCase()}\n${pathWithQuery}\n${ts}\n${nonce}\n${bodyHash}`
+  const key = await crypto.subtle.importKey('raw', enc.encode(signingKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  const sig = b64url(await crypto.subtle.sign('HMAC', key, enc.encode(canonical)))
+  return { 'x-req-ts': ts, 'x-req-nonce': nonce, 'x-req-sig': sig }
+}
 
 async function refresh(): Promise<boolean> {
   // Collapse concurrent 401s into a single refresh call.
@@ -30,8 +71,7 @@ async function refresh(): Promise<boolean> {
     try {
       const res = await fetch(`${BASE}/v1/auth/refresh`, { method: 'POST', credentials: 'include' })
       if (!res.ok) return false
-      const json = (await res.json()) as { accessToken: string }
-      accessToken = json.accessToken
+      adopt((await res.json()) as SessionEnvelope)
       return true
     } catch {
       return false
@@ -52,6 +92,8 @@ export class ApiError extends Error {
 const REQUEST_TIMEOUT_MS = 20000
 
 async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
+  const method = init.method ?? 'GET'
+  const signature = accessToken ? await signHeaders(method, `/v1${path}`, typeof init.body === 'string' ? init.body : undefined) : {}
   const res = await fetch(`${BASE}/v1${path}`, {
     ...init,
     signal: init.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -59,6 +101,7 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
     headers: {
       ...(init.body ? { 'content-type': 'application/json' } : {}),
       ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+      ...signature,
       ...init.headers,
     },
   })
@@ -98,15 +141,59 @@ export async function login(email: string, password: string) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
-  const json = (await res.json().catch(() => ({}))) as { accessToken?: string; user?: AuthUser; error?: { message?: string } }
-  if (!res.ok || !json.accessToken) throw new ApiError(res.status, json.error?.message ?? 'Gagal masuk.')
-  accessToken = json.accessToken
-  return json.user!
+  const json = (await res.json().catch(() => ({}))) as Partial<SessionEnvelope> & { mfaRequired?: boolean; challenge?: string; error?: { message?: string } }
+  if (!res.ok) throw new ApiError(res.status, json.error?.message ?? 'Gagal masuk.')
+  // A second factor set up on the account: no session yet, only a five-minute challenge.
+  if (json.mfaRequired && json.challenge) return { mfaRequired: true as const, challenge: json.challenge }
+  if (!json.accessToken) throw new ApiError(res.status, 'Gagal masuk.')
+  adopt(json as SessionEnvelope)
+  return { mfaRequired: false as const, user: json.user!, mfaSetupRequired: Boolean(json.mfaSetupRequired) }
+}
+
+/** The second step of signing in: the authenticator's code, or a recovery code. */
+export async function loginMfa(challenge: string, code: string) {
+  const res = await fetch(`${BASE}/v1/auth/login/mfa`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ challenge, code }),
+  })
+  const json = (await res.json().catch(() => ({}))) as Partial<SessionEnvelope> & { recoveryCodesLeft?: number; error?: { message?: string } }
+  if (!res.ok || !json.accessToken) throw new ApiError(res.status, json.error?.message ?? 'Kode tidak valid.')
+  adopt(json as SessionEnvelope)
+  return { user: json.user!, recoveryCodesLeft: json.recoveryCodesLeft, mfaSetupRequired: Boolean(json.mfaSetupRequired) }
 }
 
 export async function logout() {
   await fetch(`${BASE}/v1/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {})
   accessToken = null
+  signingKey = null
+  sessionId = null
+}
+
+/* ------------------------------ account security ----------------------------- */
+
+export interface SecurityState {
+  user: AuthUser
+  mfaEnabled: boolean
+  mfaSetupRequired: boolean
+  mfaVerifiedAt: string | null
+  recoveryCodesLeft: number
+  passwordChangedAt: string | null
+  session: { id: string; mfa: boolean; idleMinutes: number }
+}
+export interface SessionRow { id: string; label: string; ip: string | null; createdAt: string; lastSeenAt: string | null; expiresAt: string; mfa: boolean; current: boolean }
+
+export const security = {
+  me: () => api.get<SecurityState>('/auth/me'),
+  mfaSetup: () => api.post<{ data: { secret: string; uri: string; issuer: string; account: string } }>('/auth/mfa/setup'),
+  mfaEnable: (code: string) => api.post<{ ok: true; recoveryCodes: string[] }>('/auth/mfa/enable', { code }),
+  mfaDisable: (password: string, code: string) => api.post<{ ok: true }>('/auth/mfa/disable', { password, code }),
+  mfaRecoveryCodes: (code: string) => api.post<{ ok: true; recoveryCodes: string[] }>('/auth/mfa/recovery-codes', { code }),
+  sessions: () => api.get<{ data: SessionRow[] }>('/auth/sessions'),
+  endSession: (id: string) => api.del<{ ok: true; current: boolean }>(`/auth/sessions/${id}`),
+  endOtherSessions: () => api.del<{ ok: true; ended: number }>('/auth/sessions'),
+  changePassword: (currentPassword: string, newPassword: string) => api.post<{ ok: true }>('/auth/change-password', { currentPassword, newPassword }),
 }
 
 /**
@@ -128,6 +215,8 @@ export async function uploadDocument(file: File) {
  * fails with nothing in the network log but a CORS error.
  */
 async function putThroughApi(file: File, folder: 'media' | 'documents') {
+  // The signature covers the file's bytes, so the upload cannot be swapped in flight.
+  const bytes = await file.arrayBuffer()
   const res = await fetch(`${BASE}/v1/media/upload`, {
     method: 'POST',
     credentials: 'include',
@@ -136,8 +225,9 @@ async function putThroughApi(file: File, folder: 'media' | 'documents') {
       'x-filename': encodeURIComponent(file.name).replace(/%20/g, ' '),
       'x-folder': folder,
       ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+      ...(await signHeaders('POST', '/v1/media/upload', bytes)),
     },
-    body: file,
+    body: bytes,
   })
   const json = (await res.json().catch(() => ({}))) as { data?: { key: string; size: number }; error?: { message?: string } }
   if (!res.ok || !json.data) throw new ApiError(res.status, json.error?.message ?? 'Gagal mengunggah berkas.')

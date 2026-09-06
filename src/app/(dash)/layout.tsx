@@ -25,7 +25,7 @@ function Mark({ className = '' }: { className?: string }) {
  * navigation as the frame around it, the way a viewfinder frames a shot.
  */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading, can, signOut } = useAuth()
+  const { user, loading, can, signOut, security } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -129,10 +129,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </a>
           <div className="flex items-center gap-3 rounded-[var(--radius-tile)] bg-white/[0.04] p-2.5 ring-1 ring-inset ring-white/10">
             <span className="mono grid size-8 shrink-0 place-items-center rounded-[6px] bg-gold-300 text-[11px] font-semibold text-ink-900">{initials}</span>
-            <span className="min-w-0 flex-1 leading-tight">
+            <Link href="/akun" title="Akun & keamanan" className="min-w-0 flex-1 rounded-[4px] leading-tight outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-gold-300">
               <span className="block truncate text-[12.5px] font-semibold text-white">{user.name}</span>
-              <span className="block truncate text-[11px] text-white/45">{user.roles[0] ?? user.email}</span>
-            </span>
+              <span className="block truncate text-[11px] text-white/45">{security?.mfaEnabled ? '🔒 ' : ''}{user.roles[0] ?? user.email}</span>
+            </Link>
             <button onClick={signOut} aria-label="Keluar" title="Keluar" className="grid size-7 shrink-0 place-items-center rounded-[6px] text-white/50 transition-colors hover:bg-white/10 hover:text-white">
               <LogOut className="size-3.5" />
             </button>
@@ -161,6 +161,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </span>
           </div>
         </header>
+        {security?.mfaSetupRequired && pathname !== '/akun' ? (
+          <div className="border-b border-gold-200 bg-gold-50 px-4 py-2.5 text-[13px] text-gold-700 sm:px-6 lg:px-8">
+            Peran Anda wajib memakai verifikasi dua langkah. <Link href="/akun?wajib=1" className="font-semibold underline underline-offset-4">Aktifkan sekarang</Link>.
+          </div>
+        ) : null}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <div key={pathname} className="rise mx-auto max-w-[1400px]">{children}</div>
         </main>

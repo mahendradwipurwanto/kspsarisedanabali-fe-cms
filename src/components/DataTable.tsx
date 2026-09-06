@@ -17,6 +17,7 @@ import {
 } from './ui/dropdown-menu'
 import { Button, inputCls, selectCls, Spinner } from './ui'
 import { cn } from '@/lib/utils'
+import { secureGet, secureSet } from '@/lib/secure-storage'
 
 /** Sortable header button, the shadcn data-table pattern. */
 export function SortHeader<T>({ column, children, align = 'left' }: { column: { getIsSorted: () => false | 'asc' | 'desc'; toggleSorting: (desc?: boolean) => void }; children: ReactNode; align?: 'left' | 'right' }) {
@@ -85,16 +86,18 @@ export function DataTable<T extends { id: string }>({
 
   // Column visibility is remembered per screen; hydrate before the first save.
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(`ksp.table.${storageKey}`)
-      if (raw) setColumnVisibility({ ...(initialVisibility ?? {}), ...(JSON.parse(raw) as VisibilityState) })
-    } catch { /* a blocked store is not worth an error */ }
-    setHydrated(true)
+    let live = true
+    void secureGet<VisibilityState>(`ksp.table.${storageKey}`)
+      .then((saved) => { if (live && saved) setColumnVisibility({ ...(initialVisibility ?? {}), ...saved }) })
+      .catch(() => { /* a blocked store is not worth an error */ })
+      .finally(() => { if (live) setHydrated(true) })
+    return () => { live = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey])
 
   useEffect(() => {
     if (!hydrated) return
-    try { localStorage.setItem(`ksp.table.${storageKey}`, JSON.stringify(columnVisibility)) } catch { /* ignore */ }
+    void secureSet(`ksp.table.${storageKey}`, columnVisibility).catch(() => { /* ignore */ })
   }, [hydrated, storageKey, columnVisibility])
 
   const table = useReactTable({
