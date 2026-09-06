@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   ArrowLeft, Eye, ExternalLink, Save, Rocket, Plus, EyeOff, Trash2,
-  ChevronDown, ChevronRight, Globe, MessageCircle,
+  ChevronDown, ChevronRight, Globe, MessageCircle, CloudOff,
 } from 'lucide-react'
 import { getBlock, defaultPropsFor, type SeoCheck } from '@/contracts'
 import { api, ApiError, mediaSrc } from '@/lib/api'
@@ -16,14 +16,25 @@ import { BlockList } from '@/components/BlockList'
 import { PreviewPanel } from '@/components/PreviewPanel'
 import { BlockPicker } from '@/components/BlockPicker'
 import { BlockDataSource } from '@/components/block-sources'
-import { Button, Card, Field, inputCls, Alert, Spinner, Pill, Kbd, Segmented, Switch } from '@/components/ui'
+import { Button, Card, Field, inputCls, Alert, Spinner, Pill, Kbd, Segmented, Switch, fmtDate, fmtDateTime } from '@/components/ui'
 import { LP_URL as LP } from '@/lib/site'
 
 interface Block { id?: string; type: string; props: Record<string, unknown>; isVisible: boolean }
 interface Page {
   id: string; title: string; slug: string; status: string; isSystem: boolean
   seo: Record<string, string | boolean | undefined>; blocks: Block[]
+  publishedAt?: string | null; updatedAt?: string | null
 }
+
+/**
+ * The SEO checks grouped the way an editor fixes them: the two texts Google
+ * shows, the body of the page, then the address and keyword placement.
+ */
+const SEO_GROUPS: { label: string; ids: string[] }[] = [
+  { label: 'Judul & deskripsi', ids: ['title', 'desc', 'kw_title', 'kw_desc'] },
+  { label: 'Isi halaman', ids: ['h1', 'headings', 'words', 'alt', 'links'] },
+  { label: 'Alamat & kata kunci', ids: ['slug', 'kw_slug', 'kw_body'] },
+]
 
 /** Character counter coloured by the range that matters, not a bare "37/60". */
 function Counter({ value, ideal, max }: { value: number; ideal: [number, number]; max: number }) {
@@ -180,12 +191,34 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
     }
   }
 
+  async function unpublish() {
+    if (!page || saving) return
+    if (!window.confirm('Tarik halaman ini dari website? Pengunjung akan mendapat “halaman tidak ditemukan” sampai diterbitkan lagi.')) return
+    setSaving(true)
+    try {
+      const res = await api.post<Refreshable>(`/pages/${page.id}/unpublish`)
+      setPage((p) => (p ? { ...p, status: 'draft' } : p))
+      toastSaved(res, 'Halaman ditarik dari website', 'Isinya tetap tersimpan dan bisa diterbitkan lagi kapan saja.')
+    } catch (e) {
+      toast.error('Gagal menarik halaman', { description: (e as Error).message })
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) return <Spinner />
   if (loadError || !page) return <Alert>{loadError ?? 'Halaman tidak ditemukan.'}</Alert>
 
   const score = seo?.score ?? 0
-  const failing = (seo?.checks ?? []).filter((c) => c.status === 'fail').length
+  const checks = seo?.checks ?? []
+  const failing = checks.filter((c) => c.status === 'fail').length
+  const counts = { pass: checks.filter((c) => c.status === 'pass').length, warn: checks.filter((c) => c.status === 'warn').length, fail: failing }
   const publicUrl = `${LP}/${page.slug === '/' ? '' : page.slug}`
+  // Three states a page can be in, plus "unsaved" on top of any of them.
+  const live = page.status === 'published'
+  const withdrawn = !live && Boolean(page.publishedAt)
+  const grouped = SEO_GROUPS.map((g) => ({ ...g, items: checks.filter((c) => g.ids.includes(c.id)) }))
+  const ungrouped = checks.filter((c) => !SEO_GROUPS.some((g) => g.ids.includes(c.id)))
 
   return (
     <>
@@ -196,7 +229,7 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate text-[17px] font-extrabold tracking-[-0.01em] text-ink-900">{page.title || 'Halaman tanpa judul'}</h1>
-              <Pill tone={page.status === 'published' ? 'green' : 'amber'} dot>{page.status === 'published' ? 'Terbit' : 'Draf'}</Pill>
+              <Pill tone={live ? 'green' : withdrawn ? 'grey' : 'amber'} dot>{live ? 'Terbit' : withdrawn ? 'Ditarik' : 'Draf'}</Pill>
               {dirty ? <Pill tone="gold">Belum disimpan</Pill> : null}
             </div>
             <p className="mono mt-0.5 truncate text-[11.5px] text-ink-400">{publicUrl.replace(/^https?:\/\//, '')}</p>
@@ -244,7 +277,10 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
         </Card>
 
         {/* ── canvas ── */}
-        <div className="grid min-w-0 gap-5">
+        {/* content-start: this column is stretched to the taller SEO column, and a
+            grid hands that spare height to its rows by default, which is what
+            made the collapsed info card sit on a block of blank space. */}
+        <div className="grid min-w-0 content-start gap-5">
           <Card className="overflow-hidden">
             <button type="button" onClick={() => setInfoOpen((o) => !o)} aria-expanded={infoOpen} className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-paper">
               {infoOpen ? <ChevronDown className="size-4 text-ink-400" /> : <ChevronRight className="size-4 text-ink-400" />}
@@ -321,17 +357,79 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
           )}
         </div>
 
-        {/* ── SEO panel ── */}
-        <Card className="h-fit min-w-0 p-5 xl:sticky xl:top-[7.25rem]">
-          <div className="flex items-center gap-4">
-            <ScoreRing score={score} />
-            <div className="min-w-0">
-              <h2 className="text-[15px] font-bold text-ink-900">Kesiapan SEO</h2>
-              <p className="text-[12.5px] text-ink-500">{failing ? `${failing} poin merah menahan penerbitan.` : score >= 85 ? 'Siap terbit.' : 'Ada yang bisa dirapikan.'}</p>
+        {/* ── side panel: status, SEO readiness, search snippet ── */}
+        <div className="scroll-thin grid h-fit min-w-0 content-start gap-4 xl:sticky xl:top-[7.25rem] xl:max-h-[calc(100vh-8.5rem)] xl:overflow-y-auto">
+          <Card title="Status halaman" description={page.isSystem ? 'Halaman sistem: selalu ada, alamatnya tetap.' : undefined}>
+            <div className="flex flex-wrap items-center gap-2">
+              <Pill tone={live ? 'green' : withdrawn ? 'grey' : 'amber'} dot>
+                {live ? 'Tayang di website' : withdrawn ? 'Ditarik dari website' : 'Draf, belum pernah terbit'}
+              </Pill>
+              {dirty ? <Pill tone="gold">Perubahan belum disimpan</Pill> : null}
             </div>
-          </div>
+            <dl className="mt-4 grid gap-2 text-[12.5px]">
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="shrink-0 text-ink-500">Terakhir diubah</dt>
+                <dd className="tnum text-right font-semibold text-ink-800">{fmtDateTime(page.updatedAt)}</dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="shrink-0 text-ink-500">{live ? 'Terbit sejak' : 'Pernah terbit'}</dt>
+                <dd className="tnum text-right font-semibold text-ink-800">{page.publishedAt ? fmtDate(page.publishedAt) : 'Belum pernah'}</dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="shrink-0 text-ink-500">Alamat</dt>
+                <dd className="mono min-w-0 truncate text-right text-ink-800">{publicUrl.replace(/^https?:\/\//, '')}</dd>
+              </div>
+            </dl>
+            <p className="mt-3 text-[12px] leading-relaxed text-ink-400">
+              {live
+                ? 'Halaman ini tayang. Simpan draf langsung memperbarui isinya di website.'
+                : withdrawn
+                  ? 'Pengunjung mendapat “halaman tidak ditemukan” sampai diterbitkan lagi. Isinya tetap tersimpan.'
+                  : 'Belum bisa dibuka pengunjung. Terbitkan untuk menayangkannya.'}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {live ? (
+                <>
+                  <Button variant="secondary" size="sm" onClick={() => window.open(publicUrl, '_blank', 'noopener')}><ExternalLink className="size-3.5" /> Buka halaman</Button>
+                  {can('pages:publish') && !page.isSystem ? (
+                    <Button variant="dangerGhost" size="sm" onClick={() => void unpublish()} disabled={saving}><CloudOff className="size-3.5" /> Tarik dari website</Button>
+                  ) : null}
+                </>
+              ) : can('pages:publish') ? (
+                <Button variant="dark" size="sm" onClick={() => void save(true)} disabled={saving}><Rocket className="size-3.5" /> {withdrawn ? 'Terbitkan lagi' : 'Terbitkan'}</Button>
+              ) : null}
+            </div>
+          </Card>
 
-          <div className="mt-5">
+          <Card title="Kesiapan SEO" description={failing ? `${failing} poin merah menahan penerbitan.` : score >= 85 ? 'Siap terbit.' : 'Ada yang bisa dirapikan.'} action={<ScoreRing score={score} />}>
+            <div className="flex flex-wrap gap-1.5">
+              <Pill tone="green">{counts.pass} baik</Pill>
+              <Pill tone="amber">{counts.warn} perlu perhatian</Pill>
+              <Pill tone={counts.fail ? 'red' : 'grey'}>{counts.fail} merah</Pill>
+            </div>
+            {[...grouped, { label: 'Lainnya', ids: [], items: ungrouped }].map((g) => g.items.length ? (
+              <section key={g.label} className="mt-4 border-t border-line pt-3.5">
+                <h3 className="mb-2.5 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">
+                  {g.label}
+                  <span className="normal-case tracking-normal">{g.items.filter((c) => c.status === 'pass').length}/{g.items.length} baik</span>
+                </h3>
+                <ul className="grid gap-2.5">
+                  {g.items.map((check) => (
+                    <li key={check.id} className="flex gap-2.5">
+                      <span className={`mt-1.5 size-2 shrink-0 rounded-full ${check.status === 'pass' ? 'bg-green-500' : check.status === 'warn' ? 'bg-gold-400' : 'bg-red-600'}`} aria-hidden="true" />
+                      <span className="min-w-0">
+                        <span className="block text-[13px] font-semibold text-ink-800">{check.label}</span>
+                        <span className="block text-[12px] leading-relaxed text-ink-500">{check.hint}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null)}
+            <p className="mt-4 border-t border-line pt-3.5 text-[11.5px] leading-relaxed text-ink-400">Poin merah harus diperbaiki sebelum halaman bisa diterbitkan.</p>
+          </Card>
+
+          <Card title="Tampilan di hasil pencarian" description="Yang dilihat orang di Google dan saat tautannya dibagikan.">
             <Segmented
               size="sm"
               ariaLabel="Pratinjau tampilan"
@@ -342,7 +440,6 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
                 { value: 'sosial', label: <span className="inline-flex items-center gap-1.5"><MessageCircle className="size-3.5" /> WhatsApp</span> },
               ]}
             />
-          </div>
 
           {seoTab === 'google' ? (
             <div className="mt-3 rounded-[var(--radius-tile)] border border-line bg-white p-3.5">
@@ -369,20 +466,8 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
               </div>
             </div>
           )}
-
-          <ul className="mt-5 grid gap-2.5">
-            {(seo?.checks ?? []).map((check) => (
-              <li key={check.id} className="flex gap-2.5">
-                <span className={`mt-1.5 size-2 shrink-0 rounded-full ${check.status === 'pass' ? 'bg-green-500' : check.status === 'warn' ? 'bg-gold-400' : 'bg-red-600'}`} aria-hidden="true" />
-                <span className="min-w-0">
-                  <span className="block text-[13px] font-semibold text-ink-800">{check.label}</span>
-                  <span className="block text-[12px] leading-relaxed text-ink-500">{check.hint}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-5 border-t border-line pt-4 text-[11.5px] leading-relaxed text-ink-400">Poin merah harus diperbaiki sebelum halaman bisa diterbitkan.</p>
-        </Card>
+          </Card>
+        </div>
       </div>
 
       {preview ? (
