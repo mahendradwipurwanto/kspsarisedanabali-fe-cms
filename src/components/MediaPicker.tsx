@@ -3,16 +3,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Upload, Search, Check, ImageOff } from 'lucide-react'
 import { toast } from 'sonner'
-import { api, uploadFile, mediaSrc } from '@/lib/api'
+import { api, uploadFile, uploadProblem, mediaSrc, MAX_IMAGE_BYTES } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { Modal, Button, inputCls, Spinner, Empty, Pill } from './ui'
 
 export interface MediaItem { id: string; key: string; url: string; filename: string; alt?: string | null; size: number; width?: number | null; height?: number | null }
 
 /**
- * Pick an image from the library or upload a new one, without leaving the
- * form. Alt text is required at upload: that is how alt coverage stays at
- * 100% instead of decaying.
+ * Pick an image from the library or upload new ones, without leaving the
+ * form. Several files can go up at once; a caption typed beforehand is
+ * applied to all of them and can be refined later under Media. A single
+ * upload is picked straight away; a batch stays in the grid to choose from.
  */
 export function MediaPicker({
   open, onClose, onSelect, value,
@@ -21,7 +22,8 @@ export function MediaPicker({
   const [items, setItems] = useState<MediaItem[] | null>(null)
   const [q, setQ] = useState('')
   const [alt, setAlt] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const busy = progress !== null
 
   const load = useCallback(async () => {
     try {
@@ -41,24 +43,41 @@ export function MediaPicker({
     return term ? items.filter((m) => [m.filename, m.alt ?? ''].some((v) => v.toLowerCase().includes(term))) : items
   }, [items, q])
 
-  async function onPick(file: File) {
-    if (!alt.trim()) return toast.warning('Isi keterangan gambar (alt) dulu', { description: 'Google dan pembaca layar membaca teks ini, bukan gambarnya.' })
-    setBusy(true)
-    try {
-      const res = await uploadFile(file, 'media', alt.trim())
-      setAlt('')
-      await load()
-      onSelect({ id: res.data.id, key: res.data.key, url: res.data.url, filename: file.name, alt: alt.trim(), size: file.size })
+  async function onPick(files: File[]) {
+    if (!files.length) return
+    // Refuse what cannot go up before anything is sent, so one oversized
+    // photo does not abort a batch of good ones.
+    const rejected = files.map((f) => uploadProblem(f, 'image')).filter((p): p is string => Boolean(p))
+    const accepted = files.filter((f) => !uploadProblem(f, 'image'))
+    if (rejected.length) toast.warning(rejected.length === files.length ? 'Tidak ada yang bisa diunggah' : 'Sebagian berkas dilewati', { description: rejected.join(' '), duration: 8000 })
+    if (!accepted.length) return
+
+    setProgress({ done: 0, total: accepted.length })
+    const uploaded: MediaItem[] = []
+    const failed: string[] = []
+    for (const file of accepted) {
+      try {
+        const res = await uploadFile(file, 'media', alt.trim())
+        uploaded.push({ id: res.data.id, key: res.data.key, url: res.data.url, filename: file.name, alt: alt.trim(), size: file.size })
+      } catch (e) {
+        failed.push(`${file.name}: ${(e as Error).message}`)
+      }
+      setProgress((p) => (p ? { ...p, done: p.done + 1 } : p))
+    }
+    setProgress(null)
+    setAlt('')
+    await load()
+    if (failed.length) toast.error(uploaded.length ? 'Sebagian gagal diunggah' : 'Gagal mengunggah', { description: failed.join(' '), duration: 8000 })
+    if (uploaded.length === 1 && !failed.length) {
+      onSelect(uploaded[0]!)
       toast.success('Gambar terunggah dan dipakai')
-    } catch (e) {
-      toast.error('Gagal mengunggah', { description: (e as Error).message })
-    } finally {
-      setBusy(false)
+    } else if (uploaded.length) {
+      toast.success(`${uploaded.length} gambar terunggah`, { description: 'Pilih salah satu dari pustaka di bawah.' })
     }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Pilih gambar" description="Dari pustaka media, atau unggah yang baru." size="xl">
+    <Modal open={open} onClose={onClose} title="Pilih gambar" description={`Dari pustaka media, atau unggah yang baru. Bisa beberapa sekaligus, masing-masing maksimal ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`} size="xl">
       <div className="grid gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <label className="relative flex-1">
@@ -67,11 +86,11 @@ export function MediaPicker({
           </label>
           {can('media:upload') ? (
             <div className="flex gap-2 sm:w-[52%]">
-              <input value={alt} onChange={(e) => setAlt(e.target.value)} placeholder="Keterangan gambar untuk unggahan baru" className={inputCls} />
-              <label className={`inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-[var(--radius-input)] bg-ink-900 px-3.5 text-sm font-semibold text-white hover:bg-ink-800 ${busy ? 'pointer-events-none opacity-60' : ''}`}>
+              <input value={alt} onChange={(e) => setAlt(e.target.value)} placeholder="Keterangan gambar (opsional, bisa diisi nanti)" className={inputCls} aria-label="Keterangan gambar untuk unggahan baru" />
+              <label className={`inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-input)] bg-ink-900 px-3.5 text-sm font-semibold text-white hover:bg-ink-800 ${busy ? 'pointer-events-none opacity-60' : ''}`}>
                 <Upload className="size-4" aria-hidden="true" />
-                {busy ? 'Mengunggah…' : 'Unggah'}
-                <input type="file" accept="image/*" className="sr-only" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPick(f) }} />
+                {busy ? `Mengunggah ${progress.done + 1}/${progress.total}…` : 'Unggah'}
+                <input type="file" accept="image/*" multiple className="sr-only" disabled={busy} aria-label="Pilih berkas gambar" onChange={(e) => { const files = Array.from(e.target.files ?? []); e.target.value = ''; void onPick(files) }} />
               </label>
             </div>
           ) : null}

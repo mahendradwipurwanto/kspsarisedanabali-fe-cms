@@ -114,6 +114,8 @@ export async function logout() {
  * the `documents` table, so unlike an image they never enter the media library.
  */
 export async function uploadDocument(file: File) {
+  const problem = uploadProblem(file, 'file')
+  if (problem) throw new ApiError(413, problem)
   const saved = await putThroughApi(file, 'documents')
   return { ...saved, filename: file.name }
 }
@@ -142,8 +144,27 @@ async function putThroughApi(file: File, folder: 'media' | 'documents') {
   return json.data
 }
 
+/*
+ * Size limits, checked before a byte leaves the browser and again by the API.
+ * A 2 MB photo is already larger than any page needs; a 5 MB PDF is a full
+ * annual report. Anything bigger slows every visitor down.
+ */
+export const MAX_IMAGE_BYTES = 2 * 1024 * 1024
+export const MAX_FILE_BYTES = 5 * 1024 * 1024
+const mb = (n: number) => `${(n / 1024 / 1024).toFixed(n % (1024 * 1024) ? 1 : 0)} MB`
+
+/** The reason a file cannot be uploaded, or null when it can. */
+export function uploadProblem(file: File, kind: 'image' | 'file'): string | null {
+  if (kind === 'image' && !file.type.startsWith('image/')) return `${file.name}: bukan berkas gambar.`
+  const max = file.type.startsWith('image/') ? MAX_IMAGE_BYTES : MAX_FILE_BYTES
+  if (file.size > max) return `${file.name}: ${mb(file.size)}, melebihi batas ${mb(max)} untuk ${file.type.startsWith('image/') ? 'gambar' : 'berkas'}.`
+  return null
+}
+
 /** Direct-to-storage upload: presign → PUT → confirm. */
 export async function uploadFile(file: File, folder: 'media' | 'documents' = 'media', alt = '') {
+  const problem = uploadProblem(file, folder === 'media' ? 'image' : 'file')
+  if (problem) throw new ApiError(413, problem)
   const saved = await putThroughApi(file, folder)
 
   // Reading intrinsic dimensions client-side avoids an image library on the server.

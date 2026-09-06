@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Smartphone, Tablet, Monitor, RefreshCw, ExternalLink, X, PlugZap } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Button, Spinner, Alert, IconButton, Kbd } from '@/components/ui'
@@ -86,7 +87,10 @@ export function PreviewPanel({
   const width = DEVICES.find((d) => d.key === device)!.width
   const url = token ? `${LP}/pratinjau/${token}` : null
 
-  return (
+  if (typeof document === 'undefined') return null
+  // At the document body, like Modal: an animated ancestor would otherwise
+  // pin this "fixed" panel to itself and cut it off after scrolling.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col bg-ink-950" role="dialog" aria-modal="true" aria-label="Pratinjau halaman">
       <header className="grid-dark flex flex-wrap items-center gap-3 border-b border-white/10 bg-ink-900 px-4 py-2.5 text-white">
         <h2 className="text-[14px] font-bold">Pratinjau</h2>
@@ -188,6 +192,7 @@ export function PreviewPanel({
         Menampilkan perubahan yang belum disimpan. Tautan berlaku 30 menit dan tidak terbaca mesin pencari.
         <span className="hidden items-center gap-1 sm:flex"><Kbd>Esc</Kbd> tutup</span>
       </footer>
-    </div>
+    </div>,
+    document.body,
   )
 }

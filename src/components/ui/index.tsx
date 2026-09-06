@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, type ReactNode, type ButtonHTMLAttributes } from 'react'
+import { createPortal } from 'react-dom'
 import { Slot } from '@radix-ui/react-slot'
 import { X, Loader2, Check, AlertTriangle, Info, CircleAlert } from 'lucide-react'
 
@@ -261,7 +262,7 @@ export function Alert({ tone = 'red', children }: { tone?: 'red' | 'green' | 'am
 
 /* ─────────────────────────────── overlay ────────────────────────────── */
 
-const MODAL_W = { md: 'max-w-lg', lg: 'max-w-3xl', xl: 'max-w-5xl' }
+const MODAL_W = { md: 'max-w-lg', lg: 'max-w-3xl', xl: 'max-w-5xl', '2xl': 'max-w-[1360px]' }
 
 export function Modal({
   open, onClose, title, description, children, wide, size, footer,
@@ -278,9 +279,13 @@ export function Modal({
     return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
   }, [open, onClose])
 
-  if (!open) return null
+  if (!open || typeof document === 'undefined') return null
   const width = MODAL_W[size ?? (wide ? 'lg' : 'md')]
-  return (
+  // Rendered at the document body, not where the modal is used. An ancestor
+  // that keeps a transform — the `rise` entrance animation ends on one — turns
+  // `position: fixed` into "fixed inside that ancestor", so a dialog opened
+  // after scrolling appeared with its top cut off and moved with the page.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink-950/55 p-4 backdrop-blur-[2px] sm:p-8" onClick={onClose}>
       <div
         role="dialog"
@@ -299,7 +304,8 @@ export function Modal({
         <div className="p-5">{children}</div>
         {footer ? <div className="flex justify-end gap-2 border-t border-line px-5 py-3.5">{footer}</div> : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

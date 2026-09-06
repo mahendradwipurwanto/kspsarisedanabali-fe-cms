@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ImageOff, LayoutGrid, Rows3, Upload, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
-import { api, uploadFile, mediaSrc, ApiError } from '@/lib/api'
+import { api, uploadFile, uploadProblem, mediaSrc, ApiError, MAX_IMAGE_BYTES } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { Card, PageHeader, Spinner, Empty, Button, Alert, inputCls, Badge, Segmented } from '@/components/ui'
 import { DataTable } from '@/components/DataTable'
@@ -94,20 +94,25 @@ export default function MediaPage() {
     [canWrite, can, openRow, remove],
   )
 
-  async function onPick(file: File) {
-    if (!alt.trim()) return setError('Isi keterangan gambar (alt) terlebih dahulu. Ini wajib agar Google memahami isi gambar.')
+  async function onPick(files: File[]) {
+    if (!files.length) return
+    // Oversized or non-image files are named and skipped before anything is
+    // sent, so one bad file does not stop the rest of a batch.
+    const rejected = files.map((f) => uploadProblem(f, 'image')).filter((p): p is string => Boolean(p))
+    const accepted = files.filter((f) => !uploadProblem(f, 'image'))
+    setError(rejected.join(' '))
+    if (!accepted.length) return
     setBusy(true)
-    setError('')
-    try {
-      await uploadFile(file, 'media', alt.trim())
-      setAlt('')
-      await load()
-      toast.success('Gambar terunggah')
-    } catch (e) {
-      setError((e as Error).message)
-    } finally {
-      setBusy(false)
+    const failed: string[] = []
+    let done = 0
+    for (const file of accepted) {
+      try { await uploadFile(file, 'media', alt.trim()); done++ } catch (e) { failed.push(`${file.name}: ${(e as Error).message}`) }
     }
+    setBusy(false)
+    if (done) setAlt('')
+    await load()
+    if (failed.length) setError([...rejected, ...failed].join(' '))
+    if (done) toast.success(done === 1 ? 'Gambar terunggah' : `${done} gambar terunggah`, { description: alt.trim() ? undefined : 'Keterangan (alt) bisa diisi dari tabel di bawah.' })
   }
 
   async function save() {
@@ -160,16 +165,17 @@ export default function MediaPage() {
             <input
               value={alt}
               onChange={(e) => setAlt(e.target.value)}
-              placeholder="Keterangan gambar, contoh: Kantor Cabang Rendang tampak depan"
+              placeholder="Keterangan gambar (opsional), contoh: Kantor Cabang Rendang tampak depan"
               aria-label="Keterangan gambar baru"
               className={inputCls}
             />
-            <label className={`inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-[var(--radius-input)] bg-ink-900 px-4 text-sm font-semibold text-white hover:bg-ink-800 ${busy ? 'pointer-events-none opacity-60' : ''}`}>
+            <label className={`inline-flex h-10 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-input)] bg-ink-900 px-4 text-sm font-semibold text-white hover:bg-ink-800 ${busy ? 'pointer-events-none opacity-60' : ''}`}>
               <Upload className="size-4" aria-hidden="true" />
               {busy ? 'Mengunggah…' : 'Unggah gambar'}
-              <input type="file" accept="image/*" className="sr-only" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPick(f) }} />
+              <input type="file" accept="image/*" multiple className="sr-only" disabled={busy} aria-label="Pilih berkas gambar" onChange={(e) => { const files = Array.from(e.target.files ?? []); e.target.value = ''; void onPick(files) }} />
             </label>
           </div>
+          <p className="mt-2 text-[12px] text-ink-400">Bisa memilih beberapa gambar sekaligus, masing-masing maksimal {MAX_IMAGE_BYTES / 1024 / 1024} MB. Keterangan yang diisi di sini dipakai untuk semua gambar yang diunggah.</p>
           {error ? <div className="mt-3"><Alert>{error}</Alert></div> : null}
         </Card>
       ) : null}

@@ -4,18 +4,19 @@ import { use, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  ArrowLeft, Eye, ExternalLink, Save, Rocket, Plus, EyeOff, Trash2, Search as SearchIcon,
-  LayoutTemplate, Type, Package, Megaphone, Image as ImageIcon, ChevronDown, ChevronRight, Globe, MessageCircle,
+  ArrowLeft, Eye, ExternalLink, Save, Rocket, Plus, EyeOff, Trash2,
+  ChevronDown, ChevronRight, Globe, MessageCircle,
 } from 'lucide-react'
-import { BLOCK_LIST, getBlock, defaultPropsFor, type SeoCheck } from '@/contracts'
+import { getBlock, defaultPropsFor, type SeoCheck } from '@/contracts'
 import { api, ApiError, mediaSrc } from '@/lib/api'
 import { toastSaved, type Refreshable } from '@/lib/saved'
 import { useAuth } from '@/lib/auth-context'
 import { BlockForm } from '@/components/BlockForm'
 import { BlockList } from '@/components/BlockList'
 import { PreviewPanel } from '@/components/PreviewPanel'
+import { BlockPicker } from '@/components/BlockPicker'
 import { BlockDataSource } from '@/components/block-sources'
-import { Button, Card, Field, inputCls, Alert, Spinner, Pill, Modal, Kbd, Segmented, Switch } from '@/components/ui'
+import { Button, Card, Field, inputCls, Alert, Spinner, Pill, Kbd, Segmented, Switch } from '@/components/ui'
 import { LP_URL as LP } from '@/lib/site'
 
 interface Block { id?: string; type: string; props: Record<string, unknown>; isVisible: boolean }
@@ -23,8 +24,6 @@ interface Page {
   id: string; title: string; slug: string; status: string; isSystem: boolean
   seo: Record<string, string | boolean | undefined>; blocks: Block[]
 }
-
-const CATEGORY_ICON = { Utama: LayoutTemplate, Konten: Type, Produk: Package, Konversi: Megaphone, Media: ImageIcon } as const
 
 /** Character counter coloured by the range that matters, not a bare "37/60". */
 function Counter({ value, ideal, max }: { value: number; ideal: [number, number]; max: number }) {
@@ -58,7 +57,6 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
   const [seo, setSeo] = useState<{ checks: SeoCheck[]; score: number } | null>(null)
   const [active, setActive] = useState(0)
   const [picker, setPicker] = useState(false)
-  const [pickerQuery, setPickerQuery] = useState('')
   const [preview, setPreview] = useState(false)
   const [seoTab, setSeoTab] = useState<'google' | 'sosial'>('google')
   const [infoOpen, setInfoOpen] = useState(false)
@@ -188,7 +186,6 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
   const score = seo?.score ?? 0
   const failing = (seo?.checks ?? []).filter((c) => c.status === 'fail').length
   const publicUrl = `${LP}/${page.slug === '/' ? '' : page.slug}`
-  const pickerItems = BLOCK_LIST.filter((b) => !pickerQuery || `${b.label} ${b.description} ${b.category}`.toLowerCase().includes(pickerQuery.toLowerCase()))
 
   return (
     <>
@@ -392,47 +389,7 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
         <PreviewPanel pageId={page.id} draft={{ title: page.title, slug: page.slug, seo: page.seo, blocks: page.blocks }} onClose={() => setPreview(false)} />
       ) : null}
 
-      <Modal open={picker} onClose={() => setPicker(false)} title="Tambah blok" description="Pilih bagian yang ingin ditambahkan ke halaman. Blok masuk di urutan paling bawah dan bisa dipindah." size="xl">
-        <label className="relative mb-4 block">
-          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-400" aria-hidden="true" />
-          <input autoFocus value={pickerQuery} onChange={(e) => setPickerQuery(e.target.value)} placeholder="Cari blok…" className={`${inputCls} pl-9`} />
-        </label>
-        <div className="scroll-thin grid max-h-[60vh] gap-6 overflow-y-auto pr-1">
-          {(['Utama', 'Konten', 'Produk', 'Konversi', 'Media'] as const).map((category) => {
-            const items = pickerItems.filter((b) => b.category === category)
-            if (!items.length) return null
-            const CatIcon = CATEGORY_ICON[category]
-            return (
-              <div key={category}>
-                <h3 className="mb-2 flex items-center gap-2 text-[12px] font-semibold text-ink-500"><CatIcon className="size-3.5" /> {category}</h3>
-                <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {items.map((block) => {
-                    const blocked = block.singleton && usedSingletons.has(block.type)
-                    return (
-                      <li key={block.type}>
-                        <button
-                          onClick={() => addBlock(block.type)}
-                          disabled={blocked}
-                          className="group/pick h-full w-full rounded-[var(--radius-tile)] border border-line bg-white p-3.5 text-left transition-colors hover:border-ink-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-line"
-                        >
-                          <span className="flex items-center justify-between gap-2">
-                            <span className="block text-[13.5px] font-bold text-ink-900">{block.label}</span>
-                            <Plus className="size-4 text-ink-300 transition-colors group-hover/pick:text-ink-900" />
-                          </span>
-                          <span className="mt-1 block text-[12px] leading-relaxed text-ink-500">
-                            {blocked ? 'Sudah dipakai. Hanya boleh satu per halaman.' : block.description}
-                          </span>
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-            )
-          })}
-          {!pickerItems.length ? <p className="py-8 text-center text-[13px] text-ink-400">Tidak ada blok yang cocok.</p> : null}
-        </div>
-      </Modal>
+      <BlockPicker open={picker} onClose={() => setPicker(false)} onAdd={addBlock} used={usedSingletons} pageId={page.id} slug={page.slug} />
     </>
   )
 }
