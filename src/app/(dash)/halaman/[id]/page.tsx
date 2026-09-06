@@ -358,7 +358,10 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
         </div>
 
         {/* ── side panel: status, SEO readiness, search snippet ── */}
-        <div className="scroll-thin grid h-fit min-w-0 content-start gap-4 xl:sticky xl:top-[7.25rem] xl:max-h-[calc(100vh-8.5rem)] xl:overflow-y-auto">
+        {/* Flows with the page: pinning it needed an inner scrollbar, and the
+            rows below must be allowed to shrink (min-w-0) or the address forces
+            a sideways scrollbar and pushes the dates out of view. */}
+        <div className="grid h-fit min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-4">
           <Card title="Status halaman" description={page.isSystem ? 'Halaman sistem: selalu ada, alamatnya tetap.' : undefined}>
             <div className="flex flex-wrap items-center gap-2">
               <Pill tone={live ? 'green' : withdrawn ? 'grey' : 'amber'} dot>
@@ -367,17 +370,17 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
               {dirty ? <Pill tone="gold">Perubahan belum disimpan</Pill> : null}
             </div>
             <dl className="mt-4 grid gap-2 text-[12.5px]">
-              <div className="flex items-baseline justify-between gap-3">
+              <div className="flex min-w-0 items-baseline justify-between gap-3">
                 <dt className="shrink-0 text-ink-500">Terakhir diubah</dt>
-                <dd className="tnum text-right font-semibold text-ink-800">{fmtDateTime(page.updatedAt)}</dd>
+                <dd className="tnum min-w-0 text-right font-semibold text-ink-800">{fmtDateTime(page.updatedAt)}</dd>
               </div>
-              <div className="flex items-baseline justify-between gap-3">
+              <div className="flex min-w-0 items-baseline justify-between gap-3">
                 <dt className="shrink-0 text-ink-500">{live ? 'Terbit sejak' : 'Pernah terbit'}</dt>
-                <dd className="tnum text-right font-semibold text-ink-800">{page.publishedAt ? fmtDate(page.publishedAt) : 'Belum pernah'}</dd>
+                <dd className="tnum min-w-0 text-right font-semibold text-ink-800">{page.publishedAt ? fmtDate(page.publishedAt) : 'Belum pernah'}</dd>
               </div>
-              <div className="flex items-baseline justify-between gap-3">
-                <dt className="shrink-0 text-ink-500">Alamat</dt>
-                <dd className="mono min-w-0 truncate text-right text-ink-800">{publicUrl.replace(/^https?:\/\//, '')}</dd>
+              <div className="grid min-w-0 gap-0.5">
+                <dt className="text-ink-500">Alamat</dt>
+                <dd className="mono min-w-0 break-all text-[12px] text-ink-800">{publicUrl.replace(/^https?:\/\//, '')}</dd>
               </div>
             </dl>
             <p className="mt-3 text-[12px] leading-relaxed text-ink-400">
