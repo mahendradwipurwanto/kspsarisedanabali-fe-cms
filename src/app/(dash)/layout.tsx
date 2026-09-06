@@ -51,7 +51,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen">
       {/* ── rail ── */}
       <aside
-        className={`grid-dark fixed inset-y-0 left-0 z-40 flex w-[var(--sidebar-w)] shrink-0 flex-col bg-ink-900 text-white transition-transform duration-300 [transition-timing-function:var(--ease-settle)] lg:static lg:translate-x-0 ${
+        // On wide screens the rail is sticky and exactly one viewport tall, so
+        // the menu scrolls inside it and "Lihat website" with the profile stay
+        // pinned at the bottom left however long the page behind it is.
+        className={`grid-dark fixed inset-y-0 left-0 z-40 flex w-[var(--sidebar-w)] shrink-0 flex-col bg-ink-900 text-white transition-transform duration-300 [transition-timing-function:var(--ease-settle)] lg:sticky lg:top-0 lg:h-screen lg:self-start lg:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -150,16 +153,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <ChevronRight className="hidden size-3.5 sm:inline" aria-hidden="true" />
             <span className="truncate font-semibold text-ink-900">{current?.label ?? 'Konsol'}</span>
           </nav>
+          {/* Search lives in the sidebar (and on ⌘K); a second button here only
+              repeated it at the top right. */}
           <div className="ml-auto flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new Event('ksp:palette'))}
-              className="hidden h-8 items-center gap-2 rounded-[var(--radius-input)] border border-line bg-white px-2.5 text-[12px] text-ink-500 transition-colors hover:border-ink-900 hover:text-ink-900 sm:flex"
-            >
-              <Search className="size-3.5" aria-hidden="true" />
-              Cari
-              <span className="flex items-center gap-0.5"><Kbd>⌘</Kbd><Kbd>K</Kbd></span>
-            </button>
             <span className="mono hidden rounded-full border border-line bg-white px-2.5 py-1 text-[10.5px] text-ink-500 lg:inline-flex">
               {new Intl.DateTimeFormat('id-ID', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date())}
             </span>
