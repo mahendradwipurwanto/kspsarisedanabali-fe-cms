@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   LayoutDashboard, Users, FileText, Newspaper, Image, Package, MapPin, Settings2,
   ShieldCheck, UserCog, PanelTop, PanelBottom, Search, Landmark, Building2,
-  FileDown, TrendingUp, Quote, HelpCircle, Briefcase, Tags, Signpost,
+  FileDown, TrendingUp, Quote, HelpCircle, Briefcase, Tags, Signpost, Smartphone,
 } from 'lucide-react'
 
 export interface NavItem { label: string; href: string; icon: LucideIcon; group: string; perms: string[]; exact?: boolean }
@@ -35,6 +35,7 @@ export const NAV: NavItem[] = [
   { label: 'Footer', href: '/pengaturan/footer', icon: PanelBottom, group: 'Website', perms: ['settings:manage', 'menus:manage'] },
   { label: 'SEO & Sosial', href: '/pengaturan/seo', icon: Search, group: 'Website', perms: ['settings:manage'] },
   { label: 'Legalitas & Organisasi', href: '/pengaturan/profil', icon: Building2, group: 'Website', perms: ['settings:manage'] },
+  { label: 'Aplikasi', href: '/pengaturan/aplikasi', icon: Smartphone, group: 'Website', perms: ['settings:manage'] },
 
   { label: 'Pengguna', href: '/pengguna', icon: UserCog, group: 'Sistem', perms: ['users:read'] },
   { label: 'Peran & Hak Akses', href: '/peran', icon: ShieldCheck, group: 'Sistem', perms: ['roles:read', 'roles:manage'] },

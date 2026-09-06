@@ -28,6 +28,7 @@ const SOURCES: Record<string, { label: string; href: string }[]> = {
   job_list: [{ label: 'Lowongan', href: '/lowongan' }],
   org_chart: [{ label: 'Legalitas & Organisasi', href: '/pengaturan/profil' }],
   lead_form: [{ label: 'Produk', href: '/produk' }, { label: 'Kantor', href: '/kantor' }],
+  app_download: [{ label: 'Aplikasi', href: '/pengaturan/aplikasi' }],
   // legality_bar is deliberately absent: the website draws it from the block's
   // own items and logos alone, so pointing an editor at the settings screen
   // sent them to edit numbers the bar never reads.
@@ -48,6 +49,10 @@ const PARTIAL: Record<string, { lead: string; tail: string }> = {
   stats_counter: {
     lead: 'Angka-angkanya diambil dari',
     tail: ' selama daftar di bawah kosong; isi daftar itu bila halaman ini perlu angka yang berbeda.',
+  },
+  app_download: {
+    lead: 'Tautan App Store dan Google Play diambil dari',
+    tail: ' di Pengaturan. Judul, teks, poin, dan gambarnya diisi di kolom di bawah.',
   },
 }
 
