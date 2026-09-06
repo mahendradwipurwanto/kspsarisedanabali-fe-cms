@@ -28,20 +28,26 @@ const SOURCES: Record<string, { label: string; href: string }[]> = {
   job_list: [{ label: 'Lowongan', href: '/lowongan' }],
   org_chart: [{ label: 'Legalitas & Organisasi', href: '/pengaturan/profil' }],
   lead_form: [{ label: 'Produk', href: '/produk' }, { label: 'Kantor', href: '/kantor' }],
-  legality_bar: [{ label: 'Legalitas & Organisasi', href: '/pengaturan/profil' }],
+  // legality_bar is deliberately absent: the website draws it from the block's
+  // own items and logos alone, so pointing an editor at the settings screen
+  // sent them to edit numbers the bar never reads.
 }
 
 /**
  * Blocks that draw only part of their content from elsewhere. The org chart's
  * board comes from the organisation settings while its "Kelompok jabatan" is
- * left empty, but the apex, SPI, branch head and units are the block's own
- * fields — telling an editor "not from the fields below" would send them to
- * the wrong screen for those.
+ * left empty, and the counter's figures come from Pencapaian while its own
+ * list is empty; everything else on those blocks is a field below. Telling an
+ * editor "not from the fields below" would send them to the wrong screen.
  */
 const PARTIAL: Record<string, { lead: string; tail: string }> = {
   org_chart: {
     lead: 'Kelompok jabatan diambil dari',
     tail: ' selama kolom “Kelompok jabatan” di bawah kosong. Kotak lainnya (Rapat Anggota, SPI, pimpinan, unit kerja) diisi di kolom di bawah.',
+  },
+  stats_counter: {
+    lead: 'Angka-angkanya diambil dari',
+    tail: ' selama daftar di bawah kosong; isi daftar itu bila halaman ini perlu angka yang berbeda.',
   },
 }
 
