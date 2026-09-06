@@ -87,7 +87,7 @@ function FileInput({ value, onChange, disabled }: { value: string; onChange: (v:
  * both, so the table and the form cannot drift apart.
  */
 export function RecordSheet<T extends { id: string }>({
-  open, onOpenChange, fields, values, onChange, onSave, onDelete, title, subtitle, busy, canWrite, error, note,
+  open, onOpenChange, fields, values, onChange, onSave, onDelete, title, subtitle, busy, canWrite, note,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -100,7 +100,6 @@ export function RecordSheet<T extends { id: string }>({
   subtitle?: string
   busy?: boolean
   canWrite?: boolean
-  error?: string
   note?: ReactNode
 }) {
   const editable = fields.filter((f) => f.type !== 'readonly' && !f.readOnly)
@@ -128,7 +127,6 @@ export function RecordSheet<T extends { id: string }>({
         </SheetHeader>
 
         <div className="scroll-thin flex-1 overflow-y-auto p-5">
-          {error ? <div className="mb-4"><Alert>{error}</Alert></div> : null}
           <div className="grid gap-4">
             {editable.map((f) => {
               const v = values[f.key]

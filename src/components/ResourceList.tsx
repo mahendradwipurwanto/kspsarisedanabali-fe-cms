@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
+import { useConfirm } from '@/components/confirm'
 import { api, ApiError } from '@/lib/api'
 import { toastSaved, type Refreshable } from '@/lib/saved'
 import { useAuth } from '@/lib/auth-context'
@@ -37,13 +38,13 @@ export function ResourceList<T extends { id: string }>({
   headerAction?: ReactNode
 }) {
   const { can } = useAuth()
+  const confirm = useConfirm()
   const canWrite = can(writePermission)
 
   const [rows, setRows] = useState<T[]>([])
   const [loading, setLoading] = useState(true)
   const [record, setRecord] = useState<{ row: T | null; values: Record<string, unknown> } | null>(null)
   const [saving, setSaving] = useState(false)
-  const [sheetError, setSheetError] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -90,11 +91,11 @@ export function ResourceList<T extends { id: string }>({
     [rawFields, linked],
   )
 
-  const openNew = useCallback(() => { setSheetError(''); setRecord({ row: null, values: recordValues(fields, null) }) }, [fields])
-  const openRow = useCallback((row: T) => { setSheetError(''); setRecord({ row, values: recordValues(fields, row) }) }, [fields])
+  const openNew = useCallback(() => { setRecord({ row: null, values: recordValues(fields, null) }) }, [fields])
+  const openRow = useCallback((row: T) => { setRecord({ row, values: recordValues(fields, row) }) }, [fields])
 
   const removeRow = useCallback(async (row: T) => {
-    if (!window.confirm(`Hapus ${recordTitle?.(row) ?? 'data ini'}? Tindakan ini tidak bisa dibatalkan.`)) return
+    if (!(await confirm({ title: `Hapus ${recordTitle?.(row) ?? 'data ini'}?`, body: 'Data yang dihapus tidak bisa dikembalikan.', confirmLabel: 'Hapus', tone: 'danger' }))) return
     try {
       await api.del(`${endpoint}/${row.id}`)
       setRows((list) => list.filter((r) => r.id !== row.id))
@@ -102,7 +103,7 @@ export function ResourceList<T extends { id: string }>({
     } catch (e) {
       toast.error('Gagal menghapus', { description: (e as Error).message })
     }
-  }, [endpoint, recordTitle])
+  }, [endpoint, recordTitle, confirm])
 
   const columns = useMemo(
     () => buildColumns<T>({
@@ -118,7 +119,6 @@ export function ResourceList<T extends { id: string }>({
   async function save() {
     if (!record) return
     setSaving(true)
-    setSheetError('')
     try {
       const cleaned = Object.fromEntries(
         Object.entries(record.values).filter(([, v]) => v !== undefined && v !== null),
@@ -133,14 +133,14 @@ export function ResourceList<T extends { id: string }>({
     } catch (err) {
       const e = err as ApiError
       const detail = Array.isArray(e.details) ? e.details.map((d) => `${d.field}: ${d.message}`).join(' · ') : undefined
-      setSheetError(detail ?? e.message)
+      toast.error('Gagal menyimpan', { description: detail ?? e.message })
     } finally {
       setSaving(false)
     }
   }
 
   async function deleteMany(selected: T[]) {
-    if (!window.confirm(`Hapus ${selected.length} data terpilih? Tindakan ini tidak bisa dibatalkan.`)) return
+    if (!(await confirm({ title: `Hapus ${selected.length} data terpilih?`, body: 'Semua data yang dipilih akan dihapus sekaligus dan tidak bisa dikembalikan.', confirmLabel: `Hapus ${selected.length} data`, tone: 'danger' }))) return
     const results = await Promise.allSettled(selected.map((row) => api.del(`${endpoint}/${row.id}`)))
     const failed = results.filter((r) => r.status === 'rejected').length
     await load()
@@ -201,7 +201,6 @@ export function ResourceList<T extends { id: string }>({
         subtitle={record?.row ? `id ${record.row.id}` : undefined}
         busy={saving}
         canWrite={canWrite}
-        error={sheetError}
         note={panelNote}
       />
     </>

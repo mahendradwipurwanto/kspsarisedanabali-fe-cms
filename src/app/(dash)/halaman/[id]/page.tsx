@@ -17,6 +17,7 @@ import { PreviewPanel } from '@/components/PreviewPanel'
 import { BlockPicker } from '@/components/BlockPicker'
 import { BlockDataSource } from '@/components/block-sources'
 import { Button, Card, Field, inputCls, Alert, Spinner, Pill, Kbd, Segmented, Switch, fmtDate, fmtDateTime } from '@/components/ui'
+import { useConfirm } from '@/components/confirm'
 import { LP_URL as LP } from '@/lib/site'
 
 interface Block { id?: string; type: string; props: Record<string, unknown>; isVisible: boolean }
@@ -62,6 +63,7 @@ function ScoreRing({ score }: { score: number }) {
 export default function PageEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
+  const confirm = useConfirm()
   const { can } = useAuth()
 
   const [page, setPage] = useState<Page | null>(null)
@@ -193,7 +195,7 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
 
   async function unpublish() {
     if (!page || saving) return
-    if (!window.confirm('Tarik halaman ini dari website? Pengunjung akan mendapat “halaman tidak ditemukan” sampai diterbitkan lagi.')) return
+    if (!(await confirm({ title: 'Tarik halaman ini dari website?', body: 'Pengunjung akan mendapat “halaman tidak ditemukan” sampai halaman diterbitkan lagi. Isinya tetap tersimpan.', confirmLabel: 'Tarik dari website', tone: 'danger' }))) return
     setSaving(true)
     try {
       const res = await api.post<Refreshable>(`/pages/${page.id}/unpublish`)

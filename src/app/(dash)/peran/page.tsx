@@ -108,21 +108,19 @@ function RoleEditor({ role, onClose, onSaved }: { role: Role | null; onClose: ()
   const [description, setDescription] = useState(role?.description ?? '')
   const [selected, setSelected] = useState<string[]>(role?.permissions ?? [])
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
 
   const locked = role?.isLocked ?? false
   const toggle = (p: string) => setSelected((s) => (s.includes(p) ? s.filter((x) => x !== p) : [...s, p]))
 
   async function save() {
     setBusy(true)
-    setError('')
     try {
       if (role) await api.patch(`/roles/${role.id}`, { name, description, permissions: selected })
       else await api.post('/roles', { name, description, permissions: selected })
       toast.success(role ? 'Peran diperbarui' : 'Peran baru dibuat')
       onSaved()
     } catch (e) {
-      setError((e as Error).message)
+      toast.error('Gagal menyimpan peran', { description: (e as Error).message })
     } finally {
       setBusy(false)
     }
@@ -213,7 +211,6 @@ function RoleEditor({ role, onClose, onSaved }: { role: Role | null; onClose: ()
           </div>
         </div>
 
-        {error ? <Alert>{error}</Alert> : null}
       </div>
     </Modal>
   )

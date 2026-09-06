@@ -7,7 +7,8 @@ import { FileText, Pencil, ExternalLink, PanelTop, Copy, Trash2 } from 'lucide-r
 import { toast } from 'sonner'
 import { api, ApiError } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
-import { PageHeader, Empty, Button, Modal, Field, inputCls, Alert, fmtRelative, Badge } from '@/components/ui'
+import { PageHeader, Empty, Button, Modal, Field, inputCls, fmtRelative, Badge } from '@/components/ui'
+import { useConfirm } from '@/components/confirm'
 import { DataTable } from '@/components/DataTable'
 import { buildColumns, defaultHidden, fieldText, type TableField } from '@/components/fields'
 import { LP_URL as LP } from '@/lib/site'
@@ -44,6 +45,7 @@ const FIELDS: TableField<Row>[] = [
 export default function PagesList() {
   const { can } = useAuth()
   const router = useRouter()
+  const confirm = useConfirm()
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -66,7 +68,7 @@ export default function PagesList() {
 
   const remove = useCallback(async (row: Row) => {
     if (row.isSystem) return toast.warning('Halaman sistem tidak bisa dihapus')
-    if (!window.confirm(`Hapus halaman “${row.title}”? Tautan ke halaman ini akan mati.`)) return
+    if (!(await confirm({ title: `Hapus halaman “${row.title}”?`, body: 'Tautan ke halaman ini akan mati dan isinya tidak bisa dikembalikan.', confirmLabel: 'Hapus halaman', tone: 'danger' }))) return
     try {
       await api.del(`/pages/${row.id}`)
       setRows((list) => list.filter((r) => r.id !== row.id))
@@ -74,7 +76,7 @@ export default function PagesList() {
     } catch (e) {
       toast.error('Gagal menghapus halaman', { description: (e as Error).message })
     }
-  }, [])
+  }, [confirm])
 
   const columns = useMemo(
     () => buildColumns<Row>({
@@ -168,14 +170,12 @@ function NewPage({ onClose, onCreated }: { onClose: () => void; onCreated: (id: 
   const [slug, setSlug] = useState('')
   const [touched, setTouched] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
 
   const suggest = (v: string) =>
     v.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
   async function create() {
     setBusy(true)
-    setError('')
     try {
       const r = await api.post<{ data: { id: string } }>('/pages', {
         title: title.trim(),
@@ -188,7 +188,7 @@ function NewPage({ onClose, onCreated }: { onClose: () => void; onCreated: (id: 
       onCreated(r.data.id)
     } catch (err) {
       const e = err as ApiError
-      setError(Array.isArray(e.details) ? e.details.map((d) => `${d.field}: ${d.message}`).join(' · ') : e.message)
+      toast.error('Gagal membuat halaman', { description: Array.isArray(e.details) ? e.details.map((d) => `${d.field}: ${d.message}`).join(' · ') : e.message })
       setBusy(false)
     }
   }
@@ -219,7 +219,6 @@ function NewPage({ onClose, onCreated }: { onClose: () => void; onCreated: (id: 
         <Field label="Alamat halaman (slug)" hint="Huruf kecil dan tanda hubung saja. Halaman akan terbuka di /alamat-ini.">
           <input value={slug} onChange={(e) => { setTouched(true); setSlug(e.target.value) }} className={`${inputCls} mono`} placeholder="syarat-keanggotaan" />
         </Field>
-        {error ? <Alert>{error}</Alert> : null}
       </div>
     </Modal>
   )

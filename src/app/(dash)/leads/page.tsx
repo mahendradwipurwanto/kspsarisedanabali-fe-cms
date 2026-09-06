@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, waLink, formatRupiah } from '@/contracts'
 import { api, getToken } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
-import { PageHeader, Spinner, Empty, Button, Modal, Field, inputCls, selectCls, Alert, fmtDateTime } from '@/components/ui'
+import { PageHeader, Spinner, Empty, Button, Modal, Field, inputCls, selectCls, fmtDateTime } from '@/components/ui'
 import { DataTable } from '@/components/DataTable'
 import { buildColumns, defaultHidden, fieldText, type TableField } from '@/components/fields'
 import { cn } from '@/lib/utils'
@@ -166,21 +166,19 @@ function LeadDetail({ lead, onClose, onSaved }: { lead: Lead | null; onClose: ()
   const [status, setStatus] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
 
-  useEffect(() => { setStatus(lead?.status ?? ''); setNote(''); setError('') }, [lead])
+  useEffect(() => { setStatus(lead?.status ?? ''); setNote('') }, [lead])
 
   if (!lead) return null
 
   async function save() {
     setBusy(true)
-    setError('')
     try {
       await api.patch(`/leads/${lead!.id}`, { status, note: note || undefined })
       toast.success('Tindak lanjut tersimpan')
       onSaved()
     } catch (e) {
-      setError((e as Error).message)
+      toast.error('Gagal menyimpan tindak lanjut', { description: (e as Error).message })
     } finally {
       setBusy(false)
     }
@@ -234,7 +232,6 @@ function LeadDetail({ lead, onClose, onSaved }: { lead: Lead | null; onClose: ()
           <Field label="Catatan tindak lanjut" hint="Contoh: sudah dihubungi, minta dihubungi kembali besok.">
             <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} />
           </Field>
-          {error ? <Alert>{error}</Alert> : null}
         </div>
       ) : null}
     </Modal>

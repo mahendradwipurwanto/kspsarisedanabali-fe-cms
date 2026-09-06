@@ -260,7 +260,7 @@ export function buildColumns<T extends { id: string }>({
                 <MoreHorizontal className="size-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuContent align="end" className="w-44" onCloseAutoFocus={(e) => { if (document.querySelector('[role="dialog"]')) e.preventDefault() }}>
               <DropdownMenuLabel>Tindakan</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {actions

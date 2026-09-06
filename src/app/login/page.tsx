@@ -1,11 +1,12 @@
 'use client'
 
+import { toast } from 'sonner'
 import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, Lock, ShieldCheck } from 'lucide-react'
 import { login, loginMfa } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
-import { Button, Field, inputCls, Alert, Kbd } from '@/components/ui'
+import { Button, Field, inputCls, Kbd } from '@/components/ui'
 import { LP_URL as LP } from '@/lib/site'
 
 
@@ -21,7 +22,6 @@ function LoginForm() {
   const router = useRouter()
   const params = useSearchParams()
   const { reload } = useAuth()
-  const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   // Second step: the password was right and the account has an authenticator
   // app; the API handed back a short-lived challenge to exchange for a code.
@@ -36,14 +36,13 @@ function LoginForm() {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setBusy(true)
-    setError('')
     const fd = new FormData(e.currentTarget)
     try {
       const r = await login(String(fd.get('email')), String(fd.get('password')))
       if (r.mfaRequired) { setChallenge(r.challenge); setBusy(false); return }
       await finish(r.mfaSetupRequired)
     } catch (err) {
-      setError((err as Error).message)
+      toast.error('Tidak bisa masuk', { description: (err as Error).message })
       setBusy(false)
     }
   }
@@ -52,14 +51,13 @@ function LoginForm() {
     e.preventDefault()
     if (!challenge) return
     setBusy(true)
-    setError('')
     const code = String(new FormData(e.currentTarget).get('code') ?? '')
     try {
       const r = await loginMfa(challenge, code)
       await finish(r.mfaSetupRequired)
     } catch (err) {
       const msg = (err as Error).message
-      setError(msg)
+      toast.error('Kode tidak diterima', { description: msg })
       setBusy(false)
       // An expired challenge means starting over with the password.
       if (/kedaluwarsa|tidak berlaku/i.test(msg)) setChallenge(null)
@@ -87,13 +85,12 @@ function LoginForm() {
             className={`${inputCls} mono tracking-[0.3em]`}
           />
         </Field>
-        {error ? <Alert>{error}</Alert> : null}
         <Button type="submit" variant="dark" className="w-full" loading={busy}>Verifikasi</Button>
         <div className="flex items-center justify-between text-[12.5px]">
-          <button type="button" className="text-ink-500 underline-offset-4 hover:underline" onClick={() => { setRecovery((v) => !v); setError('') }}>
+          <button type="button" className="text-ink-500 underline-offset-4 hover:underline" onClick={() => { setRecovery((v) => !v) }}>
             {recovery ? 'Pakai kode dari aplikasi' : 'Pakai kode pemulihan'}
           </button>
-          <button type="button" className="text-ink-500 underline-offset-4 hover:underline" onClick={() => { setChallenge(null); setError('') }}>
+          <button type="button" className="text-ink-500 underline-offset-4 hover:underline" onClick={() => { setChallenge(null) }}>
             Kembali
           </button>
         </div>
@@ -110,7 +107,6 @@ function LoginForm() {
         <input name="password" type="password" required autoComplete="current-password" className={inputCls} placeholder="••••••••••" />
       </Field>
 
-      {error ? <Alert>{error}</Alert> : null}
 
       <Button type="submit" variant="dark" size="lg" loading={busy} className="mt-1 w-full">
         {busy ? 'Memeriksa…' : 'Masuk ke konsol'}

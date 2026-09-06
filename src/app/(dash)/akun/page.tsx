@@ -67,47 +67,46 @@ function MfaCard({ state, onChange }: { state: SecurityState; onChange: () => Pr
   const [setup, setSetup] = useState<{ secret: string; uri: string; qr: string } | null>(null)
   const [codes, setCodes] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
   const [disabling, setDisabling] = useState(false)
 
   async function start() {
-    setBusy(true); setError('')
+    setBusy(true)
     try {
       const r = await security.mfaSetup()
       const qr = await QRCode.toDataURL(r.data.uri, { margin: 1, width: 220 })
       setSetup({ secret: r.data.secret, uri: r.data.uri, qr }); setStep('scan')
-    } catch (e) { setError((e as Error).message) } finally { setBusy(false) }
+    } catch (e) { toast.error('Gagal memulai pengaturan', { description: (e as Error).message }) } finally { setBusy(false) }
   }
 
   async function enable(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); setBusy(true); setError('')
+    e.preventDefault(); setBusy(true)
     const code = String(new FormData(e.currentTarget).get('code') ?? '')
     try {
       const r = await security.mfaEnable(code)
       setCodes(r.recoveryCodes); setStep('codes')
       toast.success('Verifikasi dua langkah aktif', { description: 'Perangkat lain yang masuk tanpa kode sudah dikeluarkan.' })
       await onChange()
-    } catch (err) { setError((err as Error).message) } finally { setBusy(false) }
+    } catch (err) { toast.error('Kode tidak diterima', { description: (err as Error).message }) } finally { setBusy(false) }
   }
 
   async function disable(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); setBusy(true); setError('')
+    e.preventDefault(); setBusy(true)
     const fd = new FormData(e.currentTarget)
     try {
       await security.mfaDisable(String(fd.get('password') ?? ''), String(fd.get('code') ?? ''))
       toast.success('Verifikasi dua langkah dinonaktifkan'); setDisabling(false)
       await onChange()
-    } catch (err) { setError((err as Error).message) } finally { setBusy(false) }
+    } catch (err) { toast.error('Gagal menonaktifkan', { description: (err as Error).message }) } finally { setBusy(false) }
   }
 
   async function regenerate(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); setBusy(true); setError('')
+    e.preventDefault(); setBusy(true)
     const code = String(new FormData(e.currentTarget).get('code') ?? '')
     try {
       const r = await security.mfaRecoveryCodes(code)
       setCodes(r.recoveryCodes); setStep('codes')
       await onChange()
-    } catch (err) { setError((err as Error).message) } finally { setBusy(false) }
+    } catch (err) { toast.error('Gagal membuat kode baru', { description: (err as Error).message }) } finally { setBusy(false) }
   }
 
   const copyCodes = async () => { try { await navigator.clipboard.writeText(codes.join('\n')); toast.success('Kode pemulihan disalin') } catch { toast.error('Tidak bisa menyalin; catat secara manual') } }
@@ -122,7 +121,6 @@ function MfaCard({ state, onChange }: { state: SecurityState; onChange: () => Pr
         {state.session.mfa ? <Pill tone="grey">Sesi ini lolos kode</Pill> : null}
       </div>
 
-      {error ? <div className="mt-4"><Alert>{error}</Alert></div> : null}
 
       {step === 'codes' ? (
         <div className="mt-5">
@@ -250,16 +248,15 @@ function SessionsCard({ sessions, idleMinutes, onChange, onSignedOut }: { sessio
 
 function PasswordCard() {
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
   async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); setBusy(true); setError('')
+    e.preventDefault(); setBusy(true)
     const form = e.currentTarget; const fd = new FormData(form)
     const next = String(fd.get('next') ?? ''), again = String(fd.get('again') ?? '')
-    if (next !== again) { setError('Kata sandi baru dan ulangannya tidak sama.'); setBusy(false); return }
+    if (next !== again) { toast.error('Kata sandi baru dan ulangannya tidak sama.'); setBusy(false); return }
     try {
       await security.changePassword(String(fd.get('current') ?? ''), next)
       toast.success('Kata sandi diganti', { description: 'Perangkat lain harus masuk lagi.' }); form.reset()
-    } catch (err) { setError((err as Error).message) } finally { setBusy(false) }
+    } catch (err) { toast.error('Gagal mengganti kata sandi', { description: (err as Error).message }) } finally { setBusy(false) }
   }
   return (
     <Card title="Kata sandi" description="Minimal 10 karakter. Mengganti kata sandi mengeluarkan semua perangkat lain.">
@@ -269,7 +266,6 @@ function PasswordCard() {
           <Field label="Kata sandi baru" required><input name="next" type="password" required minLength={10} autoComplete="new-password" className={inputCls} /></Field>
           <Field label="Ulangi kata sandi baru" required><input name="again" type="password" required minLength={10} autoComplete="new-password" className={inputCls} /></Field>
         </div>
-        {error ? <Alert>{error}</Alert> : null}
         <div><Button type="submit" variant="dark" loading={busy}><KeyRound className="size-4" /> Ganti kata sandi</Button></div>
       </form>
     </Card>

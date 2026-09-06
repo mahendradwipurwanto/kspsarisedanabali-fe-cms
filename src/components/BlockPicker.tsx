@@ -1,5 +1,6 @@
 'use client'
 
+import { toast } from 'sonner'
 import { useEffect, useRef, useState } from 'react'
 import { Plus, Search as SearchIcon, LayoutTemplate, Type, Package, Megaphone, Image as ImageIcon, Monitor, Smartphone, MousePointerClick } from 'lucide-react'
 import { BLOCK_LIST, type BlockDef } from '@/contracts'
@@ -78,7 +79,7 @@ export function BlockPicker({
         tokens.current.set(focus.type, r.data.token)
         setToken(r.data.token)
       } catch (e) {
-        if (!cancelled) setError((e as Error).message)
+        if (!cancelled) { setError((e as Error).message); toast.error('Pratinjau blok gagal dimuat', { description: (e as Error).message }) }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -189,7 +190,6 @@ export function BlockPicker({
                   {loading || (!token && !error && !selfFramed) ? (
                     <div className="absolute inset-0 grid place-items-center bg-white/70"><Spinner /></div>
                   ) : null}
-                  {error ? <div className="absolute inset-x-0 bottom-0 p-3"><Alert>{error}</Alert></div> : null}
                 </div>
 
                 <p className="text-[11.5px] leading-relaxed text-ink-400">

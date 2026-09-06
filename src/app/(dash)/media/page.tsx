@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { api, uploadFile, uploadProblem, mediaSrc, ApiError, MAX_IMAGE_BYTES } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { Card, PageHeader, Spinner, Empty, Button, Alert, inputCls, Badge, Segmented } from '@/components/ui'
+import { useConfirm } from '@/components/confirm'
 import { DataTable } from '@/components/DataTable'
 import { RecordSheet, recordValues } from '@/components/RecordSheet'
 import { buildColumns, defaultHidden, fieldText, type TableField } from '@/components/fields'
@@ -39,15 +40,14 @@ const FIELDS: TableField<MediaItem>[] = [
 
 export default function MediaPage() {
   const { can } = useAuth()
+  const confirm = useConfirm()
   const [items, setItems] = useState<MediaItem[]>([])
   const [loading, setLoading] = useState(true)
   const [alt, setAlt] = useState('')
-  const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [mode, setMode] = useState<'gallery' | 'table'>('table')
   const [record, setRecord] = useState<{ row: MediaItem; values: Record<string, unknown> } | null>(null)
   const [saving, setSaving] = useState(false)
-  const [sheetError, setSheetError] = useState('')
 
   const canWrite = can('media:upload')
 
@@ -66,10 +66,10 @@ export default function MediaPage() {
 
   const missingAlt = items.filter((m) => !m.alt).length
 
-  const openRow = useCallback((row: MediaItem) => { setSheetError(''); setRecord({ row, values: recordValues(FIELDS, row) }) }, [])
+  const openRow = useCallback((row: MediaItem) => { setRecord({ row, values: recordValues(FIELDS, row) }) }, [])
 
   const remove = useCallback(async (row: MediaItem) => {
-    if (!window.confirm(`Hapus ${row.filename}? Halaman yang memakainya akan kehilangan gambar ini.`)) return
+    if (!(await confirm({ title: `Hapus ${row.filename}?`, body: 'Halaman yang memakainya akan kehilangan gambar ini.', confirmLabel: 'Hapus gambar', tone: 'danger' }))) return
     try {
       await api.del(`/media/${row.id}`)
       setItems((list) => list.filter((m) => m.id !== row.id))
@@ -77,7 +77,7 @@ export default function MediaPage() {
     } catch (e) {
       toast.error('Gagal menghapus', { description: (e as Error).message })
     }
-  }, [])
+  }, [confirm])
 
   const columns = useMemo(
     () => buildColumns<MediaItem>({
@@ -100,7 +100,7 @@ export default function MediaPage() {
     // sent, so one bad file does not stop the rest of a batch.
     const rejected = files.map((f) => uploadProblem(f, 'image')).filter((p): p is string => Boolean(p))
     const accepted = files.filter((f) => !uploadProblem(f, 'image'))
-    setError(rejected.join(' '))
+    if (rejected.length) toast.warning(rejected.length === 1 ? 'Satu berkas dilewati' : `${rejected.length} berkas dilewati`, { description: rejected.join(' ') })
     if (!accepted.length) return
     setBusy(true)
     const failed: string[] = []
@@ -111,14 +111,13 @@ export default function MediaPage() {
     setBusy(false)
     if (done) setAlt('')
     await load()
-    if (failed.length) setError([...rejected, ...failed].join(' '))
+    if (failed.length) toast.error(failed.length === 1 ? 'Satu berkas gagal diunggah' : `${failed.length} berkas gagal diunggah`, { description: failed.join(' ') })
     if (done) toast.success(done === 1 ? 'Gambar terunggah' : `${done} gambar terunggah`, { description: alt.trim() ? undefined : 'Keterangan (alt) bisa diisi dari tabel di bawah.' })
   }
 
   async function save() {
     if (!record) return
     setSaving(true)
-    setSheetError('')
     try {
       await api.patch(`/media/${record.row.id}`, { alt: record.values.alt ?? '', caption: record.values.caption ?? '' })
       setRecord(null)
@@ -126,7 +125,7 @@ export default function MediaPage() {
       toast.success('Keterangan tersimpan')
     } catch (err) {
       const e = err as ApiError
-      setSheetError(e.message)
+      toast.error('Gagal menyimpan', { description: e.message })
     } finally {
       setSaving(false)
     }
@@ -176,7 +175,6 @@ export default function MediaPage() {
             </label>
           </div>
           <p className="mt-2 text-[12px] text-ink-400">Bisa memilih beberapa gambar sekaligus, masing-masing maksimal {MAX_IMAGE_BYTES / 1024 / 1024} MB. Keterangan yang diisi di sini dipakai untuk semua gambar yang diunggah.</p>
-          {error ? <div className="mt-3"><Alert>{error}</Alert></div> : null}
         </Card>
       ) : null}
 
@@ -230,7 +228,6 @@ export default function MediaPage() {
         subtitle={record?.row.key}
         busy={saving}
         canWrite={canWrite}
-        error={sheetError}
         note={
           record ? (
             // eslint-disable-next-line @next/next/no-img-element

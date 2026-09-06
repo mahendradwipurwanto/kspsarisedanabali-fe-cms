@@ -262,7 +262,7 @@ export function Alert({ tone = 'red', children }: { tone?: 'red' | 'green' | 'am
 
 /* ─────────────────────────────── overlay ────────────────────────────── */
 
-const MODAL_W = { md: 'max-w-lg', lg: 'max-w-3xl', xl: 'max-w-5xl', '2xl': 'max-w-[1360px]' }
+const MODAL_W = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-3xl', xl: 'max-w-5xl', '2xl': 'max-w-[1360px]' }
 
 export function Modal({
   open, onClose, title, description, children, wide, size, footer,

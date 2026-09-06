@@ -1,10 +1,11 @@
 'use client'
 
+import { toast } from 'sonner'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Smartphone, Tablet, Monitor, RefreshCw, ExternalLink, X, PlugZap } from 'lucide-react'
 import { api } from '@/lib/api'
-import { Button, Spinner, Alert, IconButton, Kbd } from '@/components/ui'
+import { Button, Spinner, IconButton, Kbd } from '@/components/ui'
 import { LP_URL as LP, pointsAtSelf } from '@/lib/site'
 
 
@@ -71,6 +72,7 @@ export function PreviewPanel({
       setRefreshedAt(new Date())
     } catch (e) {
       setError((e as Error).message)
+      toast.error('Pratinjau gagal dimuat', { description: (e as Error).message })
     } finally {
       setLoading(false)
     }
@@ -172,7 +174,7 @@ export function PreviewPanel({
             </Button>
           </div>
         ) : error ? (
-          <div className="mx-auto max-w-lg pt-10"><Alert>{error}</Alert></div>
+          <p className="mx-auto max-w-lg pt-10 text-center text-[13px] leading-relaxed text-white/70">{error}</p>
         ) : !url ? (
           <div className="pt-20 text-white/70"><Spinner label="Menyiapkan pratinjau…" /></div>
         ) : (
