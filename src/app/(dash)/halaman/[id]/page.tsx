@@ -12,6 +12,7 @@ import { api, ApiError, mediaSrc } from '@/lib/api'
 import { toastSaved, type Refreshable } from '@/lib/saved'
 import { useAuth } from '@/lib/auth-context'
 import { BlockForm } from '@/components/BlockForm'
+import { OrgChartEditor } from '@/components/OrgChartEditor'
 import { BlockList } from '@/components/BlockList'
 import { PreviewPanel } from '@/components/PreviewPanel'
 import { BlockPicker } from '@/components/BlockPicker'
@@ -347,11 +348,21 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
               </div>
               <div className="p-5">
                 {!current.isVisible ? <div className="mb-4"><Alert tone="amber">Blok ini disembunyikan dan tidak tampil di website.</Alert></div> : null}
-                <BlockForm
-                  fields={currentDef.fields}
-                  value={current.props}
-                  onChange={(props) => setBlocks(blocks.map((b, i) => (i === active ? { ...b, props } : b)))}
-                />
+                {/* Almost every block draws its form from the schema. The
+                    organisation chart is spatial, so it gets a hand-written
+                    editor laid out like the chart; it writes the same props. */}
+                {current.type === 'org_chart' ? (
+                  <OrgChartEditor
+                    value={current.props}
+                    onChange={(props) => setBlocks(blocks.map((b, i) => (i === active ? { ...b, props } : b)))}
+                  />
+                ) : (
+                  <BlockForm
+                    fields={currentDef.fields}
+                    value={current.props}
+                    onChange={(props) => setBlocks(blocks.map((b, i) => (i === active ? { ...b, props } : b)))}
+                  />
+                )}
               </div>
             </Card>
           ) : (

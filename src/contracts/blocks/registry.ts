@@ -10,6 +10,21 @@ import { field, fieldsToZod, defaultsFor, type FieldMap } from '../fields'
 
 export type BlockCategory = 'Utama' | 'Konten' | 'Produk' | 'Konversi' | 'Media'
 
+/**
+ * The palette every box in the organisation chart can be painted with.
+ *
+ * Named after what an editor sees rather than a token, and shared by the
+ * contract, the console editor and the website so the three cannot drift.
+ */
+export const ORG_TONES = [
+  { value: 'netral', label: 'Netral (putih)' },
+  { value: 'gelap', label: 'Gelap (navy)' },
+  { value: 'hijau', label: 'Hijau' },
+  { value: 'emas', label: 'Emas' },
+] as const
+
+export type OrgTone = (typeof ORG_TONES)[number]['value']
+
 export interface BlockDef {
   type: string
   label: string
@@ -422,6 +437,11 @@ export const BLOCKS = {
     },
   }),
 
+  /**
+ * The chart's colours are options, not decisions baked into the component: a
+ * koperasi that wants its board in green and its units in navy can say so
+ * without a deploy.
+ */
   org_chart: def({
     type: 'org_chart',
     label: 'Struktur Organisasi',
@@ -439,6 +459,7 @@ export const BLOCKS = {
         label: 'Kelompok jabatan', itemLabel: 'Kelompok', max: 10,
         of: {
           title: field.text({ label: 'Nama kelompok', required: true, max: 40, placeholder: 'Pengurus' }),
+          tone: field.select({ label: 'Warna kartu', options: [...ORG_TONES], default: 'netral' }),
           members: field.repeater({
             label: 'Anggota', itemLabel: 'Orang', min: 1, max: 20,
             of: { name: field.text({ label: 'Nama', required: true, max: 80 }), role: field.text({ label: 'Jabatan', max: 60 }), photo: field.image({ label: 'Foto' }) },
@@ -450,12 +471,16 @@ export const BLOCKS = {
       // the top, the operational units at the bottom — without asking an editor
       // to build a tree in nested repeaters.
       apex: field.text({ label: 'Kotak teratas', max: 40, default: 'Rapat Anggota', help: 'Pemegang kekuasaan tertinggi koperasi. Kosongkan bila tidak ingin ditampilkan.' }),
+      apexTone: field.select({ label: 'Warna kotak teratas', options: [...ORG_TONES], default: 'gelap' }),
       audit: field.text({ label: 'Pengawas internal', max: 40, default: 'SPI', help: 'Muncul sebagai kotak di samping garis, seperti pada bagan resmi. Kosongkan bila tidak ada.' }),
+      auditTone: field.select({ label: 'Warna kotak pengawas internal', options: [...ORG_TONES], default: 'emas' }),
       operationsLead: field.text({ label: 'Pimpinan operasional', max: 40, default: 'Kepala Cabang' }),
+      leadTone: field.select({ label: 'Warna kotak pimpinan operasional', options: [...ORG_TONES], default: 'gelap' }),
       units: field.repeater({
         label: 'Unit kerja', itemLabel: 'Unit', max: 6,
         of: {
           title: field.text({ label: 'Nama unit', required: true, max: 40, placeholder: 'Kabag Dana' }),
+          tone: field.select({ label: 'Warna judul unit', options: [...ORG_TONES], default: 'hijau' }),
           roles: field.repeater({
             label: 'Jabatan di bawahnya', itemLabel: 'Jabatan', max: 10,
             of: { name: field.text({ label: 'Nama jabatan', required: true, max: 40, placeholder: 'Kasir' }) },
