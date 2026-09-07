@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Users, MessageCircle, PhoneCall, Pencil, Eye, Ban, History } from 'lucide-react'
 import { toast } from 'sonner'
-import { LEAD_STATUSES, LEAD_STATUS_LABELS, waLink, formatRupiah } from '@/contracts'
+import { LEAD_STATUSES, LEAD_STATUS_LABELS, isLeadClosed, waLink, formatRupiah } from '@/contracts'
 import { api, download } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { PageHeader, Spinner, Empty, Button, Modal, Field, Alert, inputCls, selectCls, fmtDateTime } from '@/components/ui'
@@ -26,8 +26,8 @@ interface LeadEvent {
   note?: string | null; userName?: string | null; createdAt: string
 }
 
-/** A rejection is final — the API refuses further changes to one. */
-const isRejected = (lead: { status: string }) => lead.status === 'ditolak'
+/** Selesai and Ditolak both close a case — the API refuses further changes to one. */
+const closed = (lead: { status: string }) => isLeadClosed(lead.status)
 
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'secondary' | 'destructive'> = {
   baru: 'success', diproses: 'warning', selesai: 'secondary', ditolak: 'destructive',
@@ -96,19 +96,19 @@ function LeadsView() {
       selectable: false,
       canWrite: can('leads:update'),
       extraActions: [
-        // A rejected lead opens read-only, so the menu says so rather than
+        // A closed lead opens read-only, so the menu says so rather than
         // offering a follow-up the API will refuse.
         {
           label: 'Tindak lanjuti',
           icon: <Pencil className="size-3.5" />,
           onSelect: setSelected,
-          hidden: (row) => isRejected(row) || !can('leads:update'),
+          hidden: (row) => closed(row) || !can('leads:update'),
         },
         {
           label: 'Lihat riwayat',
           icon: <Eye className="size-3.5" />,
           onSelect: setSelected,
-          hidden: (row) => !isRejected(row) && can('leads:update'),
+          hidden: (row) => !closed(row) && can('leads:update'),
         },
         {
           label: 'Buka WhatsApp',
@@ -187,7 +187,7 @@ function eventLine(e: LeadEvent): string {
 
 /**
  * The record behind one row: the enquiry, everything that has happened to it,
- * and — unless it was rejected — the next follow-up.
+ * and — unless the case is closed — the next follow-up.
  *
  * Notes used to vanish the moment they were saved: they went into the event log
  * and nothing read that back. The history below is where they now live.
@@ -215,8 +215,8 @@ function LeadDetail({ lead, onClose, onSaved }: { lead: Lead | null; onClose: ()
 
   if (!lead) return null
 
-  const rejected = isRejected(lead)
-  const editable = can('leads:update') && !rejected
+  const done = closed(lead)
+  const editable = can('leads:update') && !done
 
   async function save() {
     setBusy(true)
@@ -247,10 +247,13 @@ function LeadDetail({ lead, onClose, onSaved }: { lead: Lead | null; onClose: ()
         ) : <Button variant="secondary" onClick={onClose}>Tutup</Button>
       }
     >
-      {rejected ? (
+      {done ? (
         <div className="mb-4">
-          <Alert tone="red">
-            <span className="inline-flex items-center gap-1.5"><Ban className="size-3.5" aria-hidden="true" /> Calon nasabah ini sudah ditolak.</span>{' '}
+          <Alert tone={lead.status === 'ditolak' ? 'red' : 'green'}>
+            <span className="inline-flex items-center gap-1.5">
+              <Ban className="size-3.5" aria-hidden="true" />
+              Calon nasabah ini sudah {LEAD_STATUS_LABELS[lead.status as keyof typeof LEAD_STATUS_LABELS]?.toLowerCase() ?? lead.status}.
+            </span>{' '}
             Statusnya tidak bisa diubah lagi dan catatan baru tidak bisa ditambahkan. Riwayatnya tetap bisa dibaca di bawah.
           </Alert>
         </div>
@@ -291,8 +294,10 @@ function LeadDetail({ lead, onClose, onSaved }: { lead: Lead | null; onClose: ()
           <Field label="Catatan tindak lanjut" hint="Tersimpan di riwayat di atas, lengkap dengan nama dan waktunya. Contoh: sudah dihubungi, minta dihubungi kembali besok.">
             <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} />
           </Field>
-          {status === 'ditolak' ? (
-            <Alert tone="amber">Setelah disimpan sebagai Ditolak, data ini tidak bisa ditindaklanjuti lagi.</Alert>
+          {isLeadClosed(status) ? (
+            <Alert tone="amber">
+              Setelah disimpan sebagai {LEAD_STATUS_LABELS[status as keyof typeof LEAD_STATUS_LABELS] ?? status}, data ini tidak bisa ditindaklanjuti lagi.
+            </Alert>
           ) : null}
         </div>
       ) : null}
