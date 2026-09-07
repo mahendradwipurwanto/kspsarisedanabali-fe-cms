@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, type ReactNode, type ButtonHTMLAttributes } from 'react'
-import { createPortal } from 'react-dom'
+import { type ReactNode, type ButtonHTMLAttributes } from 'react'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { Slot } from '@radix-ui/react-slot'
 import { X, Loader2, Check, AlertTriangle, Info, CircleAlert } from 'lucide-react'
 
@@ -264,48 +264,47 @@ export function Alert({ tone = 'red', children }: { tone?: 'red' | 'green' | 'am
 
 const MODAL_W = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-3xl', xl: 'max-w-5xl', '2xl': 'max-w-[1360px]' }
 
+/**
+ * The app's dialog, on Radix like the record sheet.
+ *
+ * It has to be Radix rather than a hand-rolled portal: a modal Radix layer
+ * switches off pointer events outside itself and dismisses on a pointerdown it
+ * considers outside. A plain `createPortal` dialog opened from inside the
+ * record sheet — the media picker — therefore landed outside that layer: its
+ * buttons were dead and the first click closed the sheet underneath it. Radix
+ * stacks nested layers instead, so the inner dialog takes the focus and the
+ * clicks while the outer one waits.
+ */
 export function Modal({
   open, onClose, title, description, children, wide, size, footer,
 }: {
   open: boolean; onClose: () => void; title: string; description?: string; children: ReactNode
   wide?: boolean; size?: keyof typeof MODAL_W; footer?: ReactNode
 }) {
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
-  }, [open, onClose])
-
-  if (!open || typeof document === 'undefined') return null
   const width = MODAL_W[size ?? (wide ? 'lg' : 'md')]
-  // Rendered at the document body, not where the modal is used. An ancestor
-  // that keeps a transform — the `rise` entrance animation ends on one — turns
-  // `position: fixed` into "fixed inside that ancestor", so a dialog opened
-  // after scrolling appeared with its top cut off and moved with the page.
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink-950/55 p-4 backdrop-blur-[2px] sm:p-8" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className={`rise w-full rounded-[var(--radius-card)] border border-white/10 bg-white shadow-[var(--shadow-lift)] ${width}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
-          <div className="min-w-0">
-            <h2 className="text-[15px] font-bold text-ink-900">{title}</h2>
-            {description ? <p className="mt-0.5 text-[13px] text-ink-500">{description}</p> : null}
-          </div>
-          <IconButton label="Tutup" onClick={onClose}><X className="size-4" /></IconButton>
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={(next) => { if (!next) onClose() }}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink-950/55 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0" />
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-8">
+          <DialogPrimitive.Content
+            className={`rise w-full rounded-[var(--radius-card)] border border-white/10 bg-white shadow-[var(--shadow-lift)] ${width}`}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+              <div className="min-w-0">
+                <DialogPrimitive.Title className="text-[15px] font-bold text-ink-900">{title}</DialogPrimitive.Title>
+                {description
+                  ? <DialogPrimitive.Description className="mt-0.5 text-[13px] text-ink-500">{description}</DialogPrimitive.Description>
+                  : <DialogPrimitive.Description className="sr-only">{title}</DialogPrimitive.Description>}
+              </div>
+              <IconButton label="Tutup" onClick={onClose}><X className="size-4" /></IconButton>
+            </div>
+            <div className="p-5">{children}</div>
+            {footer ? <div className="flex justify-end gap-2 border-t border-line px-5 py-3.5">{footer}</div> : null}
+          </DialogPrimitive.Content>
         </div>
-        <div className="p-5">{children}</div>
-        {footer ? <div className="flex justify-end gap-2 border-t border-line px-5 py-3.5">{footer}</div> : null}
-      </div>
-    </div>,
-    document.body,
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   )
 }
 
