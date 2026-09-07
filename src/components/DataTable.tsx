@@ -48,7 +48,7 @@ export function SortHeader<T>({ column, children, align = 'left' }: { column: { 
  */
 export function DataTable<T extends { id: string }>({
   columns, data, loading, storageKey, searchPlaceholder = 'Cari…', globalFilter, onGlobalFilter,
-  onCreate, createLabel = 'Tambah', canWrite, onDeleteMany, onExport, toolbar, emptyState,
+  onCreate, createLabel = 'Tambah', canWrite, onDeleteMany, onExport, exportLabel = 'CSV', toolbar, emptyState,
   pageSize: initialPageSize = 25, onRowClick, globalFilterFn, initialVisibility,
 }: {
   columns: ColumnDef<T, unknown>[]
@@ -57,7 +57,7 @@ export function DataTable<T extends { id: string }>({
   /** Remembers which columns are hidden, per screen. */
   storageKey: string
   searchPlaceholder?: string
-  /** Controlled search, for screens whose filtering happens on the server. */
+  /** Controlled search, for a screen that also needs the term for its own copy. */
   globalFilter?: string
   onGlobalFilter?: (v: string) => void
   onCreate?: () => void
@@ -65,6 +65,8 @@ export function DataTable<T extends { id: string }>({
   canWrite?: boolean
   onDeleteMany?: (rows: T[]) => Promise<void> | void
   onExport?: () => void
+  /** What the export button says — the file it produces. */
+  exportLabel?: string
   toolbar?: ReactNode
   emptyState?: ReactNode
   pageSize?: number
@@ -103,7 +105,9 @@ export function DataTable<T extends { id: string }>({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, columnFilters, columnVisibility, rowSelection, globalFilter: controlled ? '' : internalFilter },
+    // The term filters the table whether the screen owns it or not; a
+    // controlled value that never reached the table left the search box inert.
+    state: { sorting, columnFilters, columnVisibility, rowSelection, globalFilter: filterValue },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
@@ -155,7 +159,7 @@ export function DataTable<T extends { id: string }>({
             </Button>
           ) : null}
 
-          {onExport ? <Button size="sm" variant="secondary" onClick={onExport}><Download className="size-3.5" /> CSV</Button> : null}
+          {onExport ? <Button size="sm" variant="secondary" onClick={onExport}><Download className="size-3.5" /> {exportLabel}</Button> : null}
 
           {hideable.length ? (
             <DropdownMenu>

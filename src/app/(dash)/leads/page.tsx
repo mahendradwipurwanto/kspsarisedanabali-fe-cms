@@ -2,12 +2,12 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Users, MessageCircle, PhoneCall } from 'lucide-react'
+import { Users, MessageCircle, PhoneCall, Pencil, Eye, Ban, History } from 'lucide-react'
 import { toast } from 'sonner'
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, waLink, formatRupiah } from '@/contracts'
-import { api, getToken } from '@/lib/api'
+import { api, download } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
-import { PageHeader, Spinner, Empty, Button, Modal, Field, inputCls, selectCls, fmtDateTime } from '@/components/ui'
+import { PageHeader, Spinner, Empty, Button, Modal, Field, Alert, inputCls, selectCls, fmtDateTime } from '@/components/ui'
 import { DataTable } from '@/components/DataTable'
 import { buildColumns, defaultHidden, fieldText, type TableField } from '@/components/fields'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,15 @@ interface Lead {
   purposes: string[]; source: string; status: string; createdAt: string; contactedAt?: string | null
   productName?: string | null; branchName?: string | null; assignedToName?: string | null
 }
+
+/** One entry of a lead's history: a status change, an assignment or a note. */
+interface LeadEvent {
+  id: string; type: string; fromValue?: string | null; toValue?: string | null
+  note?: string | null; userName?: string | null; createdAt: string
+}
+
+/** A rejection is final — the API refuses further changes to one. */
+const isRejected = (lead: { status: string }) => lead.status === 'ditolak'
 
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'secondary' | 'destructive'> = {
   baru: 'success', diproses: 'warning', selesai: 'secondary', ditolak: 'destructive',
@@ -86,9 +95,21 @@ function LeadsView() {
       fields: FIELDS,
       selectable: false,
       canWrite: can('leads:update'),
-      onEdit: setSelected,
-      editLabel: 'Tindak lanjuti',
       extraActions: [
+        // A rejected lead opens read-only, so the menu says so rather than
+        // offering a follow-up the API will refuse.
+        {
+          label: 'Tindak lanjuti',
+          icon: <Pencil className="size-3.5" />,
+          onSelect: setSelected,
+          hidden: (row) => isRejected(row) || !can('leads:update'),
+        },
+        {
+          label: 'Lihat riwayat',
+          icon: <Eye className="size-3.5" />,
+          onSelect: setSelected,
+          hidden: (row) => !isRejected(row) && can('leads:update'),
+        },
         {
           label: 'Buka WhatsApp',
           icon: <MessageCircle className="size-3.5" />,
@@ -100,18 +121,12 @@ function LeadsView() {
     [can],
   )
 
-  async function exportCsv() {
-    const res = await fetch(`${api.baseUrl}/v1/leads/export/csv`, {
-      credentials: 'include',
-      headers: { authorization: `Bearer ${getToken() ?? ''}` },
-    })
-    if (!res.ok) return toast.error('Gagal mengunduh CSV')
-    const url = URL.createObjectURL(await res.blob())
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `calon-nasabah-${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+  async function exportExcel() {
+    try {
+      await download(`/leads/export/xlsx`, `calon-nasabah-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    } catch (e) {
+      toast.error('Gagal mengunduh Excel', { description: (e as Error).message })
+    }
   }
 
   return (
@@ -134,7 +149,8 @@ function LeadsView() {
           const q = String(value).toLowerCase()
           return FIELDS.some((f) => fieldText(row.original, f).toLowerCase().includes(q))
         }}
-        onExport={can('leads:export') ? () => void exportCsv() : undefined}
+        onExport={can('leads:export') ? () => void exportExcel() : undefined}
+        exportLabel="Excel"
         onRowClick={setSelected}
         toolbar={
           <select
@@ -161,15 +177,46 @@ function LeadsView() {
   )
 }
 
+/** What one history entry says, in the words staff use. */
+function eventLine(e: LeadEvent): string {
+  const label = (v?: string | null) => (v ? LEAD_STATUS_LABELS[v as keyof typeof LEAD_STATUS_LABELS] ?? v : '—')
+  if (e.type === 'status_change') return e.fromValue ? `Status diubah dari ${label(e.fromValue)} ke ${label(e.toValue)}` : `Status ${label(e.toValue)}`
+  if (e.type === 'assign') return e.toValue ? 'Ditugaskan ke petugas lain' : 'Penugasan petugas dilepas'
+  return 'Catatan tindak lanjut'
+}
+
+/**
+ * The record behind one row: the enquiry, everything that has happened to it,
+ * and — unless it was rejected — the next follow-up.
+ *
+ * Notes used to vanish the moment they were saved: they went into the event log
+ * and nothing read that back. The history below is where they now live.
+ */
 function LeadDetail({ lead, onClose, onSaved }: { lead: Lead | null; onClose: () => void; onSaved: () => void }) {
   const { can } = useAuth()
   const [status, setStatus] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  const [timeline, setTimeline] = useState<LeadEvent[] | null>(null)
 
+  const leadId = lead?.id
   useEffect(() => { setStatus(lead?.status ?? ''); setNote('') }, [lead])
 
+  useEffect(() => {
+    if (!leadId) { setTimeline(null); return }
+    let live = true
+    setTimeline(null)
+    void api
+      .get<{ timeline: LeadEvent[] }>(`/leads/${leadId}`)
+      .then((r) => { if (live) setTimeline(r.timeline) })
+      .catch(() => { if (live) setTimeline([]) })
+    return () => { live = false }
+  }, [leadId])
+
   if (!lead) return null
+
+  const rejected = isRejected(lead)
+  const editable = can('leads:update') && !rejected
 
   async function save() {
     setBusy(true)
@@ -190,8 +237,9 @@ function LeadDetail({ lead, onClose, onSaved }: { lead: Lead | null; onClose: ()
       onClose={onClose}
       title={lead.name}
       description={SOURCE_LABEL[lead.source] ?? lead.source}
+      size="lg"
       footer={
-        can('leads:update') ? (
+        editable ? (
           <>
             <Button variant="secondary" onClick={onClose}>Batal</Button>
             <Button variant="dark" onClick={() => void save()} loading={busy}>Simpan</Button>
@@ -199,6 +247,15 @@ function LeadDetail({ lead, onClose, onSaved }: { lead: Lead | null; onClose: ()
         ) : <Button variant="secondary" onClick={onClose}>Tutup</Button>
       }
     >
+      {rejected ? (
+        <div className="mb-4">
+          <Alert tone="red">
+            <span className="inline-flex items-center gap-1.5"><Ban className="size-3.5" aria-hidden="true" /> Calon nasabah ini sudah ditolak.</span>{' '}
+            Statusnya tidak bisa diubah lagi dan catatan baru tidak bisa ditambahkan. Riwayatnya tetap bisa dibaca di bawah.
+          </Alert>
+        </div>
+      ) : null}
+
       <dl className="grid gap-3 text-[13.5px]">
         {[
           ['WhatsApp', lead.phone],
@@ -222,19 +279,54 @@ function LeadDetail({ lead, onClose, onSaved }: { lead: Lead | null; onClose: ()
           ))}
       </dl>
 
-      {can('leads:update') ? (
+      <LeadTimeline events={timeline} />
+
+      {editable ? (
         <div className="mt-5 grid gap-4 border-t border-line pt-5">
           <Field label="Ubah status">
             <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectCls}>
               {LEAD_STATUSES.map((s) => <option key={s} value={s}>{LEAD_STATUS_LABELS[s]}</option>)}
             </select>
           </Field>
-          <Field label="Catatan tindak lanjut" hint="Contoh: sudah dihubungi, minta dihubungi kembali besok.">
+          <Field label="Catatan tindak lanjut" hint="Tersimpan di riwayat di atas, lengkap dengan nama dan waktunya. Contoh: sudah dihubungi, minta dihubungi kembali besok.">
             <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} />
           </Field>
+          {status === 'ditolak' ? (
+            <Alert tone="amber">Setelah disimpan sebagai Ditolak, data ini tidak bisa ditindaklanjuti lagi.</Alert>
+          ) : null}
         </div>
       ) : null}
     </Modal>
+  )
+}
+
+/** Every status change, assignment and note on one lead, newest first. */
+function LeadTimeline({ events }: { events: LeadEvent[] | null }) {
+  return (
+    <section className="mt-5 border-t border-line pt-5">
+      <h3 className="mb-3 flex items-center gap-1.5 text-[13px] font-bold text-ink-900">
+        <History className="size-3.5 text-ink-400" aria-hidden="true" /> Riwayat tindak lanjut
+      </h3>
+
+      {events === null ? (
+        <p className="text-[13px] text-ink-400">Memuat riwayat…</p>
+      ) : events.length === 0 ? (
+        <p className="text-[13px] text-ink-400">Belum ada tindak lanjut yang tercatat.</p>
+      ) : (
+        <ol className="grid gap-3">
+          {events.map((e) => (
+            <li key={e.id} className="relative border-l border-line pl-4">
+              <span className={cn('absolute -left-[3.5px] top-1.5 size-[7px] rounded-full', e.type === 'note' ? 'bg-gold-500' : 'bg-green-600')} aria-hidden="true" />
+              <p className="text-[13px] font-semibold text-ink-900">{eventLine(e)}</p>
+              {e.note ? <p className="mt-0.5 whitespace-pre-line text-[13px] leading-relaxed text-ink-700">{e.note}</p> : null}
+              <p className="mt-0.5 text-[12px] text-ink-400">
+                {fmtDateTime(e.createdAt)}{e.userName ? ` · ${e.userName}` : ''}
+              </p>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   )
 }
 

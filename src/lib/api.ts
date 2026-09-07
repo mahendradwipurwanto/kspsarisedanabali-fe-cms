@@ -124,6 +124,40 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
   return json as T
 }
 
+/**
+ * Download a file the API generates.
+ *
+ * It cannot go through `request`, which parses JSON, but it still has to carry
+ * the session signature: an unsigned GET is rejected outright, which is why the
+ * export button used to fail with nothing to show for it.
+ */
+export async function download(path: string, filename: string, retry = true): Promise<void> {
+  const res = await fetch(`${BASE}/v1${path}`, {
+    credentials: 'include',
+    signal: AbortSignal.timeout(60000),
+    headers: {
+      ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+      ...(accessToken ? await signHeaders('GET', `/v1${path}`) : {}),
+    },
+  })
+
+  if (res.status === 401 && retry && (await refresh())) return download(path, filename, false)
+  if (!res.ok) {
+    const json = (await res.json().catch(() => ({}))) as { error?: { message?: string } }
+    throw new ApiError(res.status, json.error?.message ?? 'Berkas gagal diunduh.')
+  }
+
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.append(a)
+  a.click()
+  a.remove()
+  // Revoking straight away can cancel the download in Safari.
+  setTimeout(() => URL.revokeObjectURL(url), 10_000)
+}
+
 export const api = {
   get: <T,>(path: string) => request<T>(path),
   post: <T,>(path: string, body?: unknown) => request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
