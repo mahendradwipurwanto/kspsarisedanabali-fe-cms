@@ -274,6 +274,12 @@ const MODAL_W = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-3xl', xl: 'max-w-5x
  * buttons were dead and the first click closed the sheet underneath it. Radix
  * stacks nested layers instead, so the inner dialog takes the focus and the
  * clicks while the outer one waits.
+ *
+ * Being Radix has one consequence worth spelling out: it locks scrolling
+ * everywhere except inside the dialog's own content, so the element that
+ * scrolls has to sit *within* that content. A tall dialog whose scroller was
+ * the backdrop around it simply would not move. Hence the column below —
+ * header and footer hold still, the middle scrolls.
  */
 export function Modal({
   open, onClose, title, description, children, wide, size, footer,
@@ -286,11 +292,11 @@ export function Modal({
     <DialogPrimitive.Root open={open} onOpenChange={(next) => { if (!next) onClose() }}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink-950/55 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0" />
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-8">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:p-8">
           <DialogPrimitive.Content
-            className={`rise w-full rounded-[var(--radius-card)] border border-white/10 bg-white shadow-[var(--shadow-lift)] ${width}`}
+            className={`rise flex max-h-full w-full flex-col overflow-hidden rounded-[var(--radius-card)] border border-white/10 bg-white shadow-[var(--shadow-lift)] ${width}`}
           >
-            <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4">
               <div className="min-w-0">
                 <DialogPrimitive.Title className="text-[15px] font-bold text-ink-900">{title}</DialogPrimitive.Title>
                 {description
@@ -299,8 +305,8 @@ export function Modal({
               </div>
               <IconButton label="Tutup" onClick={onClose}><X className="size-4" /></IconButton>
             </div>
-            <div className="p-5">{children}</div>
-            {footer ? <div className="flex justify-end gap-2 border-t border-line px-5 py-3.5">{footer}</div> : null}
+            <div className="scroll-thin min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
+            {footer ? <div className="flex shrink-0 justify-end gap-2 border-t border-line px-5 py-3.5">{footer}</div> : null}
           </DialogPrimitive.Content>
         </div>
       </DialogPrimitive.Portal>
