@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Button, IconButton, inputCls, selectCls, Field, Switch, Alert } from './ui'
 import { MediaPicker } from './MediaPicker'
 import { RichTextEditor } from './RichTextEditor'
+import { Counter, IconGrid } from './BlockForm'
 import { toast } from 'sonner'
 import { uploadDocument } from '@/lib/api'
 import { mediaSrc } from '@/lib/api'
@@ -202,9 +203,16 @@ export function RecordSheet<T extends { id: string }>({
                 return <Switch key={f.key} checked={Boolean(v)} onChange={(x) => set(f.key, x)} label={f.label} hint={f.hint} disabled={!canWrite} />
               }
               return (
-                <Field key={f.key} label={f.label} hint={f.hint} required={f.required} error={fieldErrors[f.key]}>
+                <Field
+                  key={f.key}
+                  label={f.label}
+                  hint={f.hint}
+                  required={f.required}
+                  error={fieldErrors[f.key]}
+                  counter={f.max ? <Counter len={String(v ?? '').length} max={f.max} /> : undefined}
+                >
                   {f.type === 'longtext' ? (
-                    <textarea rows={f.rows ?? 4} value={String(v ?? '')} disabled={!canWrite} onChange={(e) => set(f.key, e.target.value)} className={inputCls} />
+                    <textarea rows={f.rows ?? 4} maxLength={f.max} value={String(v ?? '')} disabled={!canWrite} onChange={(e) => set(f.key, e.target.value)} className={inputCls} />
                   ) : f.type === 'richtext' ? (
                     <RichTextEditor value={String(v ?? '')} disabled={!canWrite} onChange={(html) => set(f.key, html)} />
                   ) : f.type === 'list' ? (
@@ -221,6 +229,8 @@ export function RecordSheet<T extends { id: string }>({
                       <option value="">— pilih —</option>
                       {(f.options ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
+                  ) : f.type === 'icon' ? (
+                    <IconGrid value={String(v ?? '')} disabled={!canWrite} onChange={(name) => set(f.key, name)} />
                   ) : f.type === 'stars' ? (
                     <StarInput value={Number(v ?? 0)} disabled={!canWrite} onChange={(n) => set(f.key, n)} />
                   ) : f.type === 'image' ? (
@@ -248,7 +258,7 @@ export function RecordSheet<T extends { id: string }>({
                   ) : f.type === 'url' ? (
                     <input type="url" inputMode="url" value={String(v ?? '')} disabled={!canWrite} placeholder={f.placeholder ?? 'https://…'} onChange={(e) => set(f.key, e.target.value.trim())} className={`${inputCls} mono`} />
                   ) : (
-                    <input value={String(v ?? '')} disabled={!canWrite} placeholder={f.placeholder} onChange={(e) => set(f.key, e.target.value)} className={`${inputCls} ${f.type === 'link' ? 'mono' : ''}`} />
+                    <input value={String(v ?? '')} maxLength={f.max} disabled={!canWrite} placeholder={f.placeholder} onChange={(e) => set(f.key, e.target.value)} className={`${inputCls} ${f.type === 'link' ? 'mono' : ''}`} />
                   )}
                 </Field>
               )

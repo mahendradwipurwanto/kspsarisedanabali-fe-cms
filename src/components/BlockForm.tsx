@@ -44,7 +44,7 @@ export function BlockForm({
   )
 }
 
-const Counter = ({ len, max }: { len: number; max: number }) => (
+export const Counter = ({ len, max }: { len: number; max: number }) => (
   <span className={`tnum text-[11.5px] ${len > max ? 'text-red-600' : len > max * 0.9 ? 'text-gold-600' : 'text-ink-400'}`}>{len}/{max}</span>
 )
 
@@ -207,7 +207,7 @@ function RichTextArea({ value, onChange }: { value: string; onChange: (v: string
 
 /* ─────────────────────────────── icons ──────────────────────────────── */
 
-const ICONS: Record<string, ComponentType<{ className?: string }>> = {
+export const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   spark: Sparkles, calculator: Calculator, 'map-pin': MapPin, phone: Phone, users: Users, 'trending-up': TrendingUp,
   wallet: Wallet, handshake: Handshake, 'piggy-bank': PiggyBank, award: Award, star: Star, 'shield-check': ShieldCheck,
   building: Building2, percent: Percent, briefcase: Briefcase, 'file-text': FileText, mail: Mail, clock: Clock,
@@ -219,6 +219,15 @@ function IconField({
 }: { label: string; hint?: string; error?: string; required?: boolean; value: string; onChange: (v: string) => void }) {
   return (
     <Field label={label} hint={hint} error={error} required={required}>
+      <IconGrid value={value} onChange={onChange} />
+    </Field>
+  )
+}
+
+/** The icons the website can draw, as a grid to pick from. */
+export function IconGrid({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
+  return (
+    <>
       <div className="grid grid-cols-7 gap-1.5 rounded-[var(--radius-input)] border border-line bg-white p-2 sm:grid-cols-11">
         {ICON_NAMES.map((name) => {
           const IconCmp = ICONS[name] ?? Sparkles
@@ -229,6 +238,7 @@ function IconField({
               type="button"
               title={name}
               aria-pressed={active}
+              disabled={disabled}
               onClick={() => onChange(active ? '' : name)}
               className={`grid aspect-square place-items-center rounded-[6px] border transition-colors ${active ? 'border-ink-900 bg-ink-900 text-gold-300' : 'border-transparent text-ink-600 hover:border-line hover:bg-paper hover:text-ink-900'}`}
             >
@@ -238,7 +248,7 @@ function IconField({
         })}
       </div>
       {value ? <span className="mono mt-1.5 block text-[11px] text-ink-400">{value}</span> : null}
-    </Field>
+    </>
   )
 }
 

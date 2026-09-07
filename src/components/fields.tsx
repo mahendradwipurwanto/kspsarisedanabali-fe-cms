@@ -8,6 +8,7 @@ import { Badge } from './ui/badge'
 import { Checkbox } from './ui/checkbox'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { SortHeader } from './DataTable'
+import { ICONS } from './BlockForm'
 import { mediaSrc } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
@@ -16,20 +17,21 @@ import { cn } from '@/lib/utils'
 export type FieldType =
   | 'text' | 'longtext' | 'richtext' | 'number' | 'currency' | 'percent'
   | 'select' | 'boolean' | 'date' | 'list' | 'link' | 'image' | 'file' | 'readonly'
-  | 'tel' | 'email' | 'url' | 'stars'
+  | 'tel' | 'email' | 'url' | 'stars' | 'icon'
 
 /**
  * What a record form checks before it lets a save through. Phone, email and
  * web addresses follow the same rules the website's forms and the API use, so
  * a number staff type is one the site can dial.
  */
-export function validateFields(fields: { key: string; label: string; type: FieldType; required?: boolean }[], values: Record<string, unknown>): Record<string, string> {
+export function validateFields(fields: { key: string; label: string; type: FieldType; required?: boolean; max?: number }[], values: Record<string, unknown>): Record<string, string> {
   const out: Record<string, string> = {}
   for (const f of fields) {
     const v = values[f.key]
     const text = typeof v === 'string' ? v.trim() : v == null ? '' : String(v)
     if (f.required && (text === '' || (Array.isArray(v) && v.length === 0))) { out[f.key] = 'Wajib diisi'; continue }
     if (!text) continue
+    if (f.max && text.length > f.max) { out[f.key] = `Maksimal ${f.max} karakter`; continue }
     if (f.type === 'stars' && !(Number(v) >= 1 && Number(v) <= 5)) out[f.key] = 'Pilih 1 sampai 5 bintang'
     if (f.type === 'tel' && !isValidPhone(text)) out[f.key] = PHONE_ERROR
     if (f.type === 'email' && !isValidEmail(text)) out[f.key] = EMAIL_ERROR
@@ -75,6 +77,11 @@ export interface TableField<T = Record<string, unknown>> {
   rows?: number
   /** A number that is not a quantity — a year — so it keeps no thousands separator. */
   plain?: boolean
+  /**
+   * The longest the API will accept. Enforced here so the limit is visible
+   * while typing rather than arriving as an English error after a failed save.
+   */
+  max?: number
   /** Hidden by default; the reader can switch it on from the Kolom menu. */
   hiddenByDefault?: boolean
   /** Starting value for a new record, matching what the API defaults to. */
@@ -166,6 +173,18 @@ function Cell<T>({ row, field, primary }: { row: T; field: TableField<T>; primar
       <span className="flex min-w-0 items-center gap-1.5 text-ink-700" title={fileLabel(key)}>
         <FileText className="size-3.5 shrink-0 text-ink-400" />
         <span className="min-w-0 truncate">{fileLabel(key)}</span>
+      </span>
+    )
+  }
+
+  if (field.type === 'icon') {
+    const name = String(v ?? '')
+    if (!name) return <span className="text-ink-300">—</span>
+    const Glyph = ICONS[name]
+    return (
+      <span className="inline-flex items-center gap-1.5 text-ink-700" title={name}>
+        {Glyph ? <Glyph className="size-4 shrink-0 text-ink-500" /> : null}
+        <span className="mono truncate text-[12px]">{name}</span>
       </span>
     )
   }
