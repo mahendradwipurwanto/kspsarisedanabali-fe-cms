@@ -1,6 +1,6 @@
 'use client'
 
-import { type ReactNode, type ButtonHTMLAttributes } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type ButtonHTMLAttributes } from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { Slot } from '@radix-ui/react-slot'
 import { X, Loader2, Check, AlertTriangle, Info, CircleAlert } from 'lucide-react'
@@ -113,17 +113,61 @@ export function Card({
 }
 
 export function PageHeader({
-  title, subtitle, action, eyebrow,
-}: { title: string; subtitle?: string; action?: ReactNode; eyebrow?: string }) {
+  title, subtitle, action, eyebrow, stickyAction,
+}: {
+  title: string
+  subtitle?: string
+  action?: ReactNode
+  eyebrow?: string
+  /**
+   * Keep the actions reachable on a long form: once the heading scrolls away,
+   * a slim bar with the same buttons pins under the app's top bar. It is worth
+   * the extra markup on a screen where the save button is otherwise a scroll
+   * away from whatever you just changed.
+   */
+  stickyAction?: boolean
+}) {
+  const [stuck, setStuck] = useState(false)
+  const mark = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = mark.current
+    if (!stickyAction || !el || typeof IntersectionObserver === 'undefined') return
+    // The app's own header is 56px tall; the heading counts as gone once it
+    // passes behind it.
+    const io = new IntersectionObserver(([entry]) => setStuck(!entry?.isIntersecting), { rootMargin: '-56px 0px 0px 0px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [stickyAction])
+
   return (
-    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div className="min-w-0">
-        {eyebrow ? <p className="t-label mb-1.5">{eyebrow}</p> : null}
-        <h1 className="text-[22px] font-extrabold tracking-[-0.02em] text-ink-900 sm:text-[26px]">{title}</h1>
-        {subtitle ? <p className="mt-1.5 max-w-[64ch] text-[13.5px] leading-relaxed text-ink-500">{subtitle}</p> : null}
+    <>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          {eyebrow ? <p className="t-label mb-1.5">{eyebrow}</p> : null}
+          <h1 className="text-[22px] font-extrabold tracking-[-0.02em] text-ink-900 sm:text-[26px]">{title}</h1>
+          {subtitle ? <p className="mt-1.5 max-w-[64ch] text-[13.5px] leading-relaxed text-ink-500">{subtitle}</p> : null}
+        </div>
+        {action ? <div className="flex shrink-0 flex-wrap gap-2">{action}</div> : null}
       </div>
-      {action ? <div className="flex shrink-0 flex-wrap gap-2">{action}</div> : null}
-    </div>
+
+      {stickyAction && action ? (
+        <>
+          {/* Watched, not drawn: it marks where the heading ends. */}
+          <div ref={mark} aria-hidden="true" className="-mt-6 h-px" />
+          {/* A negative margin equal to its own height keeps it out of the flow,
+              so nothing on the page moves when it appears. */}
+          <div
+            className={`sticky top-14 z-10 -mx-4 -mb-[60px] flex h-[60px] items-center justify-between gap-3 border-b border-line bg-paper/92 px-4 backdrop-blur transition-opacity duration-200 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 ${
+              stuck ? 'opacity-100' : 'pointer-events-none opacity-0'
+            }`}
+          >
+            <p className="truncate text-[13.5px] font-bold text-ink-900">{title}</p>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div>
+          </div>
+        </>
+      ) : null}
+    </>
   )
 }
 

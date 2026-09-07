@@ -10,6 +10,7 @@ import { useSettings } from '@/lib/use-settings'
 import { Card, PageHeader, Spinner, Button, Field, inputCls, Switch } from '@/components/ui'
 import { PreviewCard } from '@/components/PreviewCard'
 import { MenuEditor } from '@/components/MenuEditor'
+import { LinkInput } from '@/components/link-options'
 
 function useMenu(key: string) {
   const [items, setItems] = useState<MenuItem[] | null>(null)
@@ -65,6 +66,7 @@ export default function HeaderSettingsPage() {
         eyebrow="Website"
         title="Header & menu"
         subtitle="Bilah atas yang tampil di setiap halaman: menu navigasi, tombol utama, dan pengumuman."
+        stickyAction
         action={
           <>
             <Button variant="secondary" onClick={() => menu.set(structuredClone(NAV_MAIN as unknown as MenuItem[]))}>Pakai menu bawaan</Button>
@@ -94,7 +96,14 @@ export default function HeaderSettingsPage() {
           <Card title="Tombol & pengumuman">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Teks tombol utama" hint="Tombol hijau di kanan header."><input value={header.ctaLabel} onChange={(e) => set('ctaLabel', e.target.value)} className={inputCls} /></Field>
-              <Field label="Tujuan tombol" hint="Tulis “whatsapp” untuk memakai nomor WhatsApp koperasi, atau isi tautan."><input value={header.ctaHref} onChange={(e) => set('ctaHref', e.target.value)} list="ksp-routes" className={`${inputCls} mono`} /></Field>
+              <Field label="Tujuan tombol" hint="Pilih halaman, atau tulis alamat luar. “whatsapp” memakai nomor WhatsApp koperasi.">
+                <LinkInput
+                  value={header.ctaHref}
+                  onChange={(v) => set('ctaHref', v)}
+                  label="Tujuan tombol"
+                  placeholder="whatsapp atau /halaman"
+                />
+              </Field>
               <Field label="Teks pintasan cari produk"><input value={header.profilingLabel} onChange={(e) => set('profilingLabel', e.target.value)} className={inputCls} /></Field>
               <div className="sm:pt-6">
                 <Switch checked={header.showProfilingShortcut} onChange={(v) => set('showProfilingShortcut', v)} label="Tampilkan pintasan cari produk" hint="Tautan kecil di sebelah tombol utama pada layar lebar." />
@@ -102,7 +111,9 @@ export default function HeaderSettingsPage() {
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
               <Field label="Pengumuman" hint="Baris tipis di atas header. Kosongkan untuk menyembunyikan."><input value={header.announcement} onChange={(e) => set('announcement', e.target.value)} placeholder="Contoh: Kantor tutup pada Hari Raya Nyepi, 29 Maret." className={inputCls} /></Field>
-              <Field label="Tautan pengumuman" hint="Opsional."><input value={header.announcementHref} onChange={(e) => set('announcementHref', e.target.value)} list="ksp-routes" className={`${inputCls} mono`} /></Field>
+              <Field label="Tautan pengumuman" hint="Opsional.">
+                <LinkInput value={header.announcementHref} onChange={(v) => set('announcementHref', v)} label="Tautan pengumuman" placeholder="Boleh dikosongkan" />
+              </Field>
             </div>
           </Card>
         </div>

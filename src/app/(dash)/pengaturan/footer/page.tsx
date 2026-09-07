@@ -10,6 +10,7 @@ import { useSettings } from '@/lib/use-settings'
 import { Card, PageHeader, Spinner, Button, Field, inputCls, Switch } from '@/components/ui'
 import { PreviewCard } from '@/components/PreviewCard'
 import { MenuEditor } from '@/components/MenuEditor'
+import { LinkInput } from '@/components/link-options'
 
 const SOCIAL_ICON: Record<SocialKey, LucideIcon> = {
   facebook: Facebook, instagram: Instagram, youtube: Youtube, tiktok: Music2, x: Twitter, linkedin: Linkedin, telegram: Send,
@@ -67,6 +68,7 @@ export default function FooterSettingsPage() {
         eyebrow="Website"
         title="Footer"
         subtitle="Bagian bawah setiap halaman: ajakan terakhir, kolom tautan, kantor, dan catatan kaki."
+        stickyAction
         action={
           <>
             <Button variant="secondary" onClick={() => menu.set(DEFAULT_FOOTER_MENU)}>Pakai kolom bawaan</Button>
@@ -82,9 +84,21 @@ export default function FooterSettingsPage() {
               <Field label="Judul"><input value={footer.ctaHeading} onChange={(e) => set('ctaHeading', e.target.value)} className={inputCls} /></Field>
               <Field label="Kalimat pendukung"><input value={footer.ctaBody} onChange={(e) => set('ctaBody', e.target.value)} className={inputCls} /></Field>
               <Field label="Tombol utama"><input value={footer.primaryLabel} onChange={(e) => set('primaryLabel', e.target.value)} className={inputCls} /></Field>
-              <Field label="Tujuan tombol utama"><input value={footer.primaryHref} onChange={(e) => set('primaryHref', e.target.value)} list="ksp-routes" className={`${inputCls} mono`} /></Field>
+              <Field label="Tujuan tombol utama" hint="Pilih halaman dari daftar, atau tulis alamat luar.">
+                <LinkInput
+                  value={footer.primaryHref}
+                  onChange={(v) => set('primaryHref', v)}
+                  label="Tujuan tombol utama"
+                />
+              </Field>
               <Field label="Tombol kedua"><input value={footer.secondaryLabel} onChange={(e) => set('secondaryLabel', e.target.value)} className={inputCls} /></Field>
-              <Field label="Tujuan tombol kedua"><input value={footer.secondaryHref} onChange={(e) => set('secondaryHref', e.target.value)} list="ksp-routes" className={`${inputCls} mono`} /></Field>
+              <Field label="Tujuan tombol kedua" hint="Pilih halaman dari daftar, atau tulis alamat luar.">
+                <LinkInput
+                  value={footer.secondaryHref}
+                  onChange={(v) => set('secondaryHref', v)}
+                  label="Tujuan tombol kedua"
+                />
+              </Field>
             </div>
           </Card>
 
