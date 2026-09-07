@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { GripVertical, Plus, Trash2, ChevronUp, ChevronDown, CornerDownRight, Link2 } from 'lucide-react'
+import { GripVertical, Plus, Trash2, ChevronUp, ChevronDown, CornerDownRight } from 'lucide-react'
 import type { MenuItem } from '@/contracts'
 import { Button, IconButton, inputCls } from './ui'
-import { LinkDatalist, linkLabel, useLinkOptions } from './link-options'
+import { LinkInput, linkLabel, useLinkOptions } from './link-options'
 
 /**
  * Move up / move down.
@@ -54,8 +54,6 @@ export function MenuEditor({
 
   return (
     <div className="grid gap-2">
-      <LinkDatalist id="ksp-routes" options={options} />
-
       {items.length === 0 ? (
         <p className="rounded-[var(--radius-tile)] border border-dashed border-line-strong bg-paper px-4 py-6 text-center text-[13px] text-ink-500">
           Belum ada menu. Tambahkan item pertama.
@@ -83,15 +81,11 @@ export function MenuEditor({
               <span aria-hidden="true" className="mt-2.5 cursor-grab text-ink-300 active:cursor-grabbing"><GripVertical className="size-4" /></span>
               <div className="grid min-w-0 shrink grow basis-52 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
                 <input value={item.label} onChange={(e) => update(i, { label: e.target.value })} placeholder="Label menu" className={inputCls} aria-label="Label menu" />
-                <span className="relative min-w-0">
-                  <Link2 className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-400" aria-hidden="true" />
-                  <input
+                <span className="min-w-0">
+                  <LinkInput
                     value={item.href}
-                    onChange={(e) => update(i, { href: e.target.value })}
-                    list="ksp-routes"
+                    onChange={(href) => update(i, { href })}
                     placeholder={hasChildren ? 'Boleh dikosongkan' : '/produk atau https://…'}
-                    className={`${inputCls} mono pl-8`}
-                    aria-label="Tautan"
                   />
                   {linkLabel(item.href, options) ? (
                     <span className="mt-1 block truncate text-[11.5px] text-ink-400">→ {linkLabel(item.href, options)}</span>
@@ -122,7 +116,12 @@ export function MenuEditor({
                   <li key={k} className="flex min-w-0 flex-wrap items-start gap-2">
                     <div className="grid min-w-0 shrink grow basis-48 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
                       <input value={child.label} onChange={(e) => update(i, { children: item.children!.map((c, m) => (m === k ? { ...c, label: e.target.value } : c)) })} placeholder={`Label ${childLabel}`} className={`${inputCls} !py-2 text-[13px]`} aria-label={`Label ${childLabel}`} />
-                      <input value={child.href} onChange={(e) => update(i, { children: item.children!.map((c, m) => (m === k ? { ...c, href: e.target.value } : c)) })} list="ksp-routes" placeholder="/produk/pinjaman" className={`${inputCls} mono !py-2 text-[13px]`} aria-label="Tautan" />
+                      <LinkInput
+                        compact
+                        value={child.href}
+                        onChange={(href) => update(i, { children: item.children!.map((c, m) => (m === k ? { ...c, href } : c)) })}
+                        placeholder="/produk/pinjaman"
+                      />
                     </div>
                     <span className="ml-auto flex shrink-0 items-center">
                       <Reorder

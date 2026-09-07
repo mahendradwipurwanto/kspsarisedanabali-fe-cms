@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ComponentType } from 'react'
 import {
-  ChevronDown, ChevronRight, ChevronUp, GripVertical, Plus, Trash2, ImagePlus, X, Link2, Copy,
+  ChevronDown, ChevronRight, ChevronUp, GripVertical, Plus, Trash2, ImagePlus, X, Copy,
   Sparkles, Calculator, MapPin, Phone, Users, TrendingUp, Wallet, Handshake, PiggyBank, Award, Star,
   ShieldCheck, Building2, Percent, Briefcase, FileText, Mail, Clock, Compass, Leaf, Check, Home, Newspaper,
 } from 'lucide-react'
@@ -10,7 +10,7 @@ import { ICON_NAMES, type FieldDef, type FieldMap } from '@/contracts'
 import { api, mediaSrc } from '@/lib/api'
 import { Button, IconButton, inputCls, selectCls, Field, Switch } from './ui'
 import { MediaPicker } from './MediaPicker'
-import { LinkDatalist, linkLabel, useLinkOptions } from './link-options'
+import { LinkInput, linkLabel, useLinkOptions } from './link-options'
 
 /**
  * Schema-driven form renderer.
@@ -159,11 +159,12 @@ function LinkField({
   const known = linkLabel(value, options)
   return (
     <Field label={def.label} {...common} hint={known ? `→ ${known}` : def.help}>
-      <span className="relative block">
-        <Link2 className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-ink-400" aria-hidden="true" />
-        <input value={value} list="ksp-link-routes" placeholder={def.placeholder ?? '/produk atau https://…'} onChange={(e) => onChange(e.target.value)} className={`${inputCls} mono pl-8`} />
-      </span>
-      <LinkDatalist id="ksp-link-routes" options={options} />
+      <LinkInput
+        value={value}
+        onChange={onChange}
+        placeholder={def.placeholder ?? '/produk atau https://…'}
+        label={def.label}
+      />
     </Field>
   )
 }
