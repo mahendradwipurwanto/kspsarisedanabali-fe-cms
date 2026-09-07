@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { ImagePlus, Trash2, Upload, X, FileText } from 'lucide-react'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from './ui/sheet'
 import { Button, IconButton, inputCls, selectCls, Field, Switch, Alert } from './ui'
@@ -9,7 +9,7 @@ import { RichTextEditor } from './RichTextEditor'
 import { toast } from 'sonner'
 import { uploadDocument } from '@/lib/api'
 import { mediaSrc } from '@/lib/api'
-import { fieldValue, isNumeric, validateFields, type TableField } from './fields'
+import { fieldValue, fileLabel, isNumeric, toSlug, validateFields, type TableField } from './fields'
 import { cleanPhoneInput } from '@/contracts'
 
 function ImageInput({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
@@ -20,7 +20,11 @@ function ImageInput({ value, onChange, disabled }: { value: string; onChange: (v
         <div className="flex items-center gap-3 rounded-[var(--radius-input)] border border-line bg-white p-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={mediaSrc(value)} alt="" className="size-14 shrink-0 rounded-[6px] bg-paper object-cover" />
-          <span className="mono min-w-0 flex-1 truncate text-[11.5px] text-ink-500">{value}</span>
+          {/* The name, not the whole storage path, and wrapped over two lines
+              rather than cut off — a cover image is recognised by its name. */}
+          <span className="mono min-w-0 flex-1 break-all text-[11.5px] leading-snug text-ink-500 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden" title={value}>
+            {fileLabel(value)}
+          </span>
           {!disabled ? (
             <>
               <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>Ganti</Button>
@@ -65,7 +69,9 @@ function FileInput({ value, onChange, disabled }: { value: string; onChange: (v:
       {value ? (
         <div className="flex items-center gap-3 rounded-[var(--radius-input)] border border-line bg-white p-2.5">
           <FileText className="size-5 shrink-0 text-ink-400" />
-          <span className="mono min-w-0 flex-1 truncate text-[12px] text-ink-600">{value}</span>
+          <span className="mono min-w-0 flex-1 break-all text-[12px] leading-snug text-ink-600 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden" title={value}>
+            {fileLabel(value)}
+          </span>
           {!disabled ? <IconButton label="Hapus berkas" onClick={() => onChange('')} className="hover:!text-red-600"><X className="size-4" /></IconButton> : null}
         </div>
       ) : null}
@@ -107,10 +113,29 @@ export function RecordSheet<T extends { id: string }>({
   // Phone, email and web addresses are checked here before the API sees
   // them, so the message sits under the field rather than in a toast.
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  // Fields this sheet filled in on its own. A derived field keeps following its
+  // source while it is one of these, and stops for good once someone types in
+  // it — which is also why an existing record, whose slug arrived already
+  // filled, is never rewritten by an edit to its title.
+  const [auto, setAuto] = useState<Set<string>>(new Set())
+  useEffect(() => { setAuto(new Set()); setFieldErrors({}) }, [open, values.id])
+
   const set = (key: string, v: unknown) => {
-    onChange({ ...values, [key]: v })
-    if (fieldErrors[key]) setFieldErrors((prev) => { const next = { ...prev }; delete next[key]; return next })
+    const next: Record<string, unknown> = { ...values, [key]: v }
+    const filled = new Set(auto)
+    for (const f of fields) {
+      if (f.deriveFrom !== key) continue
+      const current = String(values[f.key] ?? '')
+      if (current && !auto.has(f.key)) continue
+      next[f.key] = toSlug(String(v ?? ''))
+      filled.add(f.key)
+    }
+    if (filled.size !== auto.size) setAuto(filled)
+    if (auto.has(key)) setAuto((prev) => { const p = new Set(prev); p.delete(key); return p })
+    onChange(next)
+    if (fieldErrors[key]) setFieldErrors((prev) => { const p = { ...prev }; delete p[key]; return p })
   }
+
   const submit = () => {
     const problems = validateFields(editable, values)
     setFieldErrors(problems)
@@ -208,6 +233,11 @@ export function recordValues<T extends { id: string }>(fields: TableField<T>[], 
   for (const f of fields) {
     if (row) { out[f.key] = fieldValue(row, f); continue }
     if (f.defaultValue !== undefined) { out[f.key] = f.defaultValue; continue }
+    // A choice with no "none" option starts on its first choice. Left blank it
+    // would be sent as "", and an API default cannot rescue that: an empty
+    // string is a value, so the enum rejects it rather than falling back —
+    // which is what stopped a new berita from saving at all.
+    if (f.type === 'select' && !f.emptyOption && f.options?.length) { out[f.key] = f.options[0]!.value; continue }
     // A number left blank must be omitted, not sent as "", which the API
     // rejects with "Expected number, received string".
     out[f.key] = f.type === 'boolean' ? false : f.type === 'list' ? [] : isNumeric(f.type) ? undefined : ''

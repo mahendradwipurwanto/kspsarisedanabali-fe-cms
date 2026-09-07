@@ -120,8 +120,15 @@ export function ResourceList<T extends { id: string }>({
     if (!record) return
     setSaving(true)
     try {
+      // An empty choice is left out rather than sent as "": the API's own
+      // default then applies, instead of the enum refusing a blank string.
+      const blankSelects = new Set(
+        fields.filter((f) => f.type === 'select' && !f.emptyOption).map((f) => f.key),
+      )
       const cleaned = Object.fromEntries(
-        Object.entries(record.values).filter(([, v]) => v !== undefined && v !== null),
+        Object.entries(record.values).filter(
+          ([k, v]) => v !== undefined && v !== null && !(v === '' && blankSelects.has(k)),
+        ),
       )
       const payload = transformOut ? transformOut(cleaned) : cleaned
       const res = record.row

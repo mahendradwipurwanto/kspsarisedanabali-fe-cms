@@ -72,11 +72,28 @@ export interface TableField<T = Record<string, unknown>> {
   /** Read the value when it is not a plain property. */
   get?: (row: T) => unknown
   rows?: number
+  /** A number that is not a quantity — a year — so it keeps no thousands separator. */
+  plain?: boolean
   /** Hidden by default; the reader can switch it on from the Kolom menu. */
   hiddenByDefault?: boolean
   /** Starting value for a new record, matching what the API defaults to. */
   defaultValue?: unknown
+  /**
+   * Fill this field from another as it is typed, until someone edits it by
+   * hand. Used for slugs, which nobody should have to write twice.
+   */
+  deriveFrom?: string
 }
+
+/**
+ * The readable half of a stored key.
+ *
+ * Uploads are saved as `media/2026/09/<ulid>-nama-berkas.jpg`; the folder and
+ * the ULID are plumbing, and showing them left no room for the part a person
+ * recognises.
+ */
+export const fileLabel = (key: string) =>
+  (key.split('/').pop() ?? key).replace(/^[0-9A-HJKMNP-TV-Z]{26}-/i, '')
 
 const idr = new Intl.NumberFormat('id-ID')
 const dateFmt = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -93,7 +110,7 @@ export function fieldText<T>(row: T, f: TableField<T>): string {
     case 'boolean': return v ? 'Ya' : 'Tidak'
     case 'currency': return `Rp${idr.format(Number(v))}`
     case 'percent': return `${String(v).replace('.', ',')}%`
-    case 'number': return idr.format(Number(v))
+    case 'number': return f.plain ? String(v) : idr.format(Number(v))
     case 'date': return dateFmt.format(new Date(String(v)))
     case 'list': return Array.isArray(v) ? (v as string[]).join(' · ') : String(v)
     // Rich text is stored as HTML; the reader searches the words, not the tags.
@@ -101,6 +118,11 @@ export function fieldText<T>(row: T, f: TableField<T>): string {
     default: return String(v)
   }
 }
+
+/** The address form of a name: lower case, words joined by hyphens. */
+export const toSlug = (v: string) =>
+  v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60)
 
 export const isNumeric = (t: FieldType) => t === 'number' || t === 'currency' || t === 'percent'
 
@@ -134,10 +156,13 @@ function Cell<T>({ row, field, primary }: { row: T; field: TableField<T>; primar
   if (field.type === 'file') {
     const key = String(v ?? '')
     if (!key) return <span className="text-ink-300">—</span>
+    // `flex` with `min-w-0`, not `inline-flex`: an inline row sizes to its
+    // content, so a long document name grew past its column and sat over the
+    // actions button at the end of the row.
     return (
-      <span className="inline-flex items-center gap-1.5 text-ink-700">
+      <span className="flex min-w-0 items-center gap-1.5 text-ink-700" title={fileLabel(key)}>
         <FileText className="size-3.5 shrink-0 text-ink-400" />
-        <span className="truncate">{key.split('/').pop()}</span>
+        <span className="min-w-0 truncate">{fileLabel(key)}</span>
       </span>
     )
   }

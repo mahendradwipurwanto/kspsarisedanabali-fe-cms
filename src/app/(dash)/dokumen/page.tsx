@@ -19,7 +19,8 @@ const FIELDS: TableField<DocumentItem>[] = [
       { value: 'lainnya', label: 'Lainnya', variant: 'secondary' },
     ],
   },
-  { key: 'year', label: 'Tahun buku', type: 'number', width: 120 },
+  // A year, not a quantity: 2026 rather than 2.026.
+  { key: 'year', label: 'Tahun buku', type: 'number', width: 120, plain: true },
   { key: 'fileKey', label: 'Berkas', type: 'file', width: 260, required: true, hint: 'PDF atau DOC. Diunggah langsung ke penyimpanan koperasi.' },
   { key: 'isPublic', label: 'Tampil di web', type: 'boolean', width: 130, defaultValue: true },
   { key: 'sortOrder', label: 'Urutan', type: 'number', width: 100, hiddenByDefault: true, defaultValue: 0 },

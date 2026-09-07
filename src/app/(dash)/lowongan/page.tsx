@@ -24,7 +24,7 @@ const FIELDS: TableField<Job>[] = [
   { key: 'location', label: 'Penempatan', type: 'text', width: 200, hint: 'Contoh: Kantor Cabang Rendang, Karangasem.' },
   { key: 'closesAt', label: 'Ditutup', type: 'date', width: 150 },
   { key: 'isActive', label: 'Dibuka', type: 'boolean', width: 110, defaultValue: true },
-  { key: 'slug', label: 'Slug', type: 'text', width: 200, required: true, hint: 'Gunakan huruf kecil dan tanda hubung (-). Contoh: account-officer.' },
+  { key: 'slug', label: 'Slug', type: 'text', width: 200, required: true, deriveFrom: 'title', hint: 'Gunakan huruf kecil dan tanda hubung (-). Contoh: account-officer.' },
   { key: 'description', label: 'Deskripsi pekerjaan (HTML)', type: 'longtext', rows: 8, panelOnly: true, hint: 'Gunakan <p>, <ul>, <li>, <strong>.' },
   { key: 'requirements', label: 'Kualifikasi', type: 'list', panelOnly: true, hint: 'Satu kualifikasi per baris.' },
 ]

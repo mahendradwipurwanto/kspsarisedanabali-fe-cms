@@ -8,7 +8,7 @@ interface PostCategory { id: string; name: string; slug: string; description?: s
 const FIELDS: TableField<PostCategory>[] = [
   { key: 'name', label: 'Nama kategori', type: 'text', width: 260, required: true },
   {
-    key: 'slug', label: 'Slug', type: 'text', width: 220, required: true,
+    key: 'slug', label: 'Slug', type: 'text', width: 220, required: true, deriveFrom: 'name',
     hint: 'Gunakan huruf kecil dan tanda hubung (-). Dipakai di alamat /berita?kategori=…',
   },
   {
