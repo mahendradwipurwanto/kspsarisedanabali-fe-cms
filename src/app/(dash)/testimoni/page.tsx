@@ -11,7 +11,7 @@ interface Testimonial {
 const FIELDS: TableField<Testimonial>[] = [
   { key: 'name', label: 'Nama anggota', type: 'text', required: true, secondary: (r) => [r.role, r.location].filter(Boolean).join(' · ') },
   { key: 'quote', label: 'Kutipan', type: 'longtext', width: 380, required: true, rows: 5 },
-  { key: 'rating', label: 'Bintang', type: 'number', width: 110, defaultValue: 5, hint: '1 sampai 5.' },
+  { key: 'rating', label: 'Bintang', type: 'stars', width: 120, defaultValue: 5, hint: 'Arahkan kursor lalu klik untuk memilih.' },
   { key: 'role', label: 'Pekerjaan', type: 'text', width: 170 },
   { key: 'location', label: 'Asal', type: 'text', width: 170 },
   { key: 'isActive', label: 'Tampil di web', type: 'boolean', width: 130, defaultValue: true },

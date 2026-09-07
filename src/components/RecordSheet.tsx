@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
-import { ImagePlus, Trash2, Upload, X, FileText } from 'lucide-react'
+import { ImagePlus, Trash2, Upload, X, FileText, Star } from 'lucide-react'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from './ui/sheet'
 import { Button, IconButton, inputCls, selectCls, Field, Switch, Alert } from './ui'
 import { MediaPicker } from './MediaPicker'
@@ -11,6 +11,7 @@ import { uploadDocument } from '@/lib/api'
 import { mediaSrc } from '@/lib/api'
 import { fieldValue, fileLabel, isNumeric, toSlug, validateFields, type TableField } from './fields'
 import { cleanPhoneInput } from '@/contracts'
+import { cn } from '@/lib/utils'
 
 function ImageInput({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
   const [open, setOpen] = useState(false)
@@ -44,6 +45,47 @@ function ImageInput({ value, onChange, disabled }: { value: string; onChange: (v
       )}
       <MediaPicker open={open} onClose={() => setOpen(false)} value={value} onSelect={(m) => { onChange(m.key); setOpen(false) }} />
     </>
+  )
+}
+
+/**
+ * A score out of five, chosen rather than typed.
+ *
+ * It was a plain number box, which accepted 0, 9, or -3 as readily as 4 — and
+ * asked the reader to translate a rating into a figure. Hovering shows what a
+ * click will set; the arrow keys work for anyone not using a mouse.
+ */
+function StarInput({ value, onChange, disabled }: { value: number; onChange: (v: number) => void; disabled?: boolean }) {
+  const [preview, setPreview] = useState<number | null>(null)
+  const score = Math.max(0, Math.min(5, Math.round(value || 0)))
+  const shown = preview ?? score
+
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Penilaian bintang"
+      className="flex items-center gap-1"
+      onMouseLeave={() => setPreview(null)}
+    >
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          role="radio"
+          aria-checked={score === n}
+          aria-label={`${n} bintang`}
+          disabled={disabled}
+          onMouseEnter={() => setPreview(n)}
+          onFocus={() => setPreview(n)}
+          onBlur={() => setPreview(null)}
+          onClick={() => onChange(n)}
+          className="rounded-[4px] p-0.5 transition-transform disabled:cursor-not-allowed hover:enabled:scale-110"
+        >
+          <Star className={cn('size-7 transition-colors', n <= shown ? 'fill-gold-400 text-gold-400' : 'text-ink-200')} />
+        </button>
+      ))}
+      <span className="tnum ml-2 text-[13px] font-semibold text-ink-600">{shown} dari 5</span>
+    </div>
   )
 }
 
@@ -179,6 +221,8 @@ export function RecordSheet<T extends { id: string }>({
                       <option value="">— pilih —</option>
                       {(f.options ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
+                  ) : f.type === 'stars' ? (
+                    <StarInput value={Number(v ?? 0)} disabled={!canWrite} onChange={(n) => set(f.key, n)} />
                   ) : f.type === 'image' ? (
                     <ImageInput value={String(v ?? '')} onChange={(x) => set(f.key, x)} disabled={!canWrite} />
                   ) : f.type === 'file' ? (

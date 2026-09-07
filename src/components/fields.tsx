@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { isValidEmail, isValidPhone, isValidUrl, PHONE_ERROR, EMAIL_ERROR, URL_ERROR } from '@/contracts'
-import { Check, Minus, MoreHorizontal, Pencil, Trash2, ExternalLink, FileText, Image as ImageIcon } from 'lucide-react'
+import { Check, Minus, MoreHorizontal, Pencil, Trash2, ExternalLink, FileText, Image as ImageIcon, Star } from 'lucide-react'
 import { Badge } from './ui/badge'
 import { Checkbox } from './ui/checkbox'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 export type FieldType =
   | 'text' | 'longtext' | 'richtext' | 'number' | 'currency' | 'percent'
   | 'select' | 'boolean' | 'date' | 'list' | 'link' | 'image' | 'file' | 'readonly'
-  | 'tel' | 'email' | 'url'
+  | 'tel' | 'email' | 'url' | 'stars'
 
 /**
  * What a record form checks before it lets a save through. Phone, email and
@@ -30,6 +30,7 @@ export function validateFields(fields: { key: string; label: string; type: Field
     const text = typeof v === 'string' ? v.trim() : v == null ? '' : String(v)
     if (f.required && (text === '' || (Array.isArray(v) && v.length === 0))) { out[f.key] = 'Wajib diisi'; continue }
     if (!text) continue
+    if (f.type === 'stars' && !(Number(v) >= 1 && Number(v) <= 5)) out[f.key] = 'Pilih 1 sampai 5 bintang'
     if (f.type === 'tel' && !isValidPhone(text)) out[f.key] = PHONE_ERROR
     if (f.type === 'email' && !isValidEmail(text)) out[f.key] = EMAIL_ERROR
     if (f.type === 'url' && !isValidUrl(text)) out[f.key] = URL_ERROR
@@ -111,6 +112,7 @@ export function fieldText<T>(row: T, f: TableField<T>): string {
     case 'currency': return `Rp${idr.format(Number(v))}`
     case 'percent': return `${String(v).replace('.', ',')}%`
     case 'number': return f.plain ? String(v) : idr.format(Number(v))
+    case 'stars': return `${Math.max(0, Math.min(5, Math.round(Number(v) || 0)))} dari 5`
     case 'date': return dateFmt.format(new Date(String(v)))
     case 'list': return Array.isArray(v) ? (v as string[]).join(' · ') : String(v)
     // Rich text is stored as HTML; the reader searches the words, not the tags.
@@ -124,6 +126,7 @@ export const toSlug = (v: string) =>
   v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60)
 
+/** A star score is a number, but never written with a thousands separator. */
 export const isNumeric = (t: FieldType) => t === 'number' || t === 'currency' || t === 'percent'
 
 /* ────────────────────────────── cell bodies ─────────────────────────────── */
@@ -163,6 +166,17 @@ function Cell<T>({ row, field, primary }: { row: T; field: TableField<T>; primar
       <span className="flex min-w-0 items-center gap-1.5 text-ink-700" title={fileLabel(key)}>
         <FileText className="size-3.5 shrink-0 text-ink-400" />
         <span className="min-w-0 truncate">{fileLabel(key)}</span>
+      </span>
+    )
+  }
+
+  if (field.type === 'stars') {
+    const score = Math.max(0, Math.min(5, Math.round(Number(v) || 0)))
+    return (
+      <span className="flex items-center gap-0.5" aria-label={`${score} dari 5 bintang`}>
+        {Array.from({ length: 5 }, (_, i) => (
+          <Star key={i} className={cn('size-3.5', i < score ? 'fill-gold-400 text-gold-400' : 'text-ink-200')} />
+        ))}
       </span>
     )
   }
