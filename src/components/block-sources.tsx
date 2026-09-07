@@ -28,6 +28,7 @@ const SOURCES: Record<string, { label: string; href: string }[]> = {
   job_list: [{ label: 'Lowongan', href: '/lowongan' }],
   org_chart: [{ label: 'Legalitas & Organisasi', href: '/pengaturan/profil' }],
   lead_form: [{ label: 'Produk', href: '/produk' }, { label: 'Kantor', href: '/kantor' }],
+  feedback_form: [{ label: 'Kantor', href: '/kantor' }],
   app_download: [{ label: 'Aplikasi', href: '/pengaturan/aplikasi' }],
   // legality_bar is deliberately absent: the website draws it from the block's
   // own items and logos alone, so pointing an editor at the settings screen

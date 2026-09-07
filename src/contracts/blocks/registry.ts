@@ -301,6 +301,33 @@ export const BLOCKS = {
     },
   }),
 
+  feedback_form: def({
+    type: 'feedback_form',
+    label: 'Formulir Kritik & Saran',
+    description: 'Kotak saran online. Masukan yang dikirim masuk ke menu Kritik & Saran di konsol.',
+    category: 'Konversi',
+    icon: 'message',
+    headingLevel: 'h2',
+    fields: {
+      eyebrow: field.text({ label: 'Label kecil di atas', max: 40, default: 'Suara anggota' }),
+      heading: field.text({ label: 'Judul bagian', required: true, max: 70, default: 'Kritik & Saran' }),
+      headingAccent: field.text({ label: 'Bagian judul yang diberi warna hijau', max: 40, help: 'Ditampilkan hijau di akhir judul.' }),
+      body: field.textarea({ label: 'Penjelasan singkat', max: 300, rows: 3, default: 'Sampaikan keluhan, usulan, atau apresiasi Anda. Semua masukan dibaca pengurus dan menjadi bahan perbaikan layanan.' }),
+      formTitle: field.text({ label: 'Judul di atas formulir', max: 40, default: 'Sampaikan Masukan' }),
+      // Anonymous by default: someone with a complaint about a member of staff
+      // will not file it if the form demands their name first.
+      askIdentity: field.boolean({ label: 'Tampilkan kolom nama dan kontak', default: true, help: 'Tetap opsional bagi pengirim, sehingga masukan boleh anonim.' }),
+      askBranch: field.boolean({ label: 'Tanyakan kantor yang dimaksud', default: true }),
+      askRating: field.boolean({ label: 'Tanyakan penilaian bintang 1–5', default: true }),
+      successMessage: field.textarea({ label: 'Pesan setelah terkirim', max: 240, rows: 2, default: 'Terima kasih. Masukan Anda sudah kami terima dan akan dibaca pengurus.' }),
+      note: field.text({ label: 'Catatan kecil di bawah tombol', max: 160, default: 'Masukan Anda boleh dikirim tanpa nama.' }),
+      points: field.repeater({
+        label: 'Poin penjelas di samping formulir', itemLabel: 'Poin', max: 4,
+        of: { title: field.text({ label: 'Judul poin', required: true, max: 50 }), body: field.text({ label: 'Penjelasan', max: 120 }) },
+      }),
+    },
+  }),
+
   profiling_cta: def({
     type: 'profiling_cta',
     label: 'Ajakan Profiling Nasabah',

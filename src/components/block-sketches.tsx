@@ -177,7 +177,7 @@ const SKETCHES: Record<string, () => React.ReactNode> = {
 const SKETCH_BY_TYPE: Record<string, keyof typeof SKETCHES> = {
   page_header: 'heading', hero_banner: 'hero', quick_access: 'strip', legality_bar: 'legal', branch_contact_strip: 'strip',
   stats_counter: 'stats', product_grid: 'products', cta_banner: 'cta', news_list: 'products', testimonial_slider: 'slider',
-  lead_form: 'form', profiling_cta: 'cta', branch_finder: 'map', simulation_calculator: 'calculator', rich_text: 'text',
+  lead_form: 'form', feedback_form: 'form', profiling_cta: 'cta', branch_finder: 'map', simulation_calculator: 'calculator', rich_text: 'text',
   accordion: 'accordion', feature_grid: 'cards', image_gallery: 'gallery', document_list: 'list', org_chart: 'org',
   post_index: 'products', job_list: 'list', faq_index: 'accordion', simulation_tabs: 'tabs', profiling_wizard: 'calculator',
   contact_cards: 'cards', media_text: 'mediaText', steps: 'steps', timeline: 'timeline', video_embed: 'video',

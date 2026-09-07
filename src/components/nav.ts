@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   LayoutDashboard, Users, FileText, Newspaper, Image, Package, MapPin, Settings2,
   ShieldCheck, UserCog, PanelTop, PanelBottom, Search, Landmark, Building2,
-  FileDown, TrendingUp, Quote, HelpCircle, Briefcase, Tags, Signpost, Smartphone, KeyRound,
+  FileDown, TrendingUp, Quote, HelpCircle, Briefcase, Tags, Signpost, Smartphone, KeyRound, MessageSquareHeart,
 } from 'lucide-react'
 
 export interface NavItem { label: string; href: string; icon: LucideIcon; group: string; perms: string[]; exact?: boolean }
@@ -16,6 +16,7 @@ export interface NavItem { label: string; href: string; icon: LucideIcon; group:
 export const NAV: NavItem[] = [
   { label: 'Ringkasan', href: '/', icon: LayoutDashboard, group: 'Ikhtisar', perms: [], exact: true },
   { label: 'Calon Nasabah', href: '/leads', icon: Users, group: 'Ikhtisar', perms: ['leads:read:all', 'leads:read:branch'] },
+  { label: 'Kritik & Saran', href: '/masukan', icon: MessageSquareHeart, group: 'Ikhtisar', perms: ['feedback:read'] },
 
   { label: 'Halaman', href: '/halaman', icon: FileText, group: 'Konten', perms: ['pages:read'] },
   { label: 'Berita', href: '/berita', icon: Newspaper, group: 'Konten', perms: ['posts:read'] },
