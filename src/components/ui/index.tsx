@@ -97,7 +97,10 @@ export function Card({
   if (!title) return <div className={`${base} ${className}`}>{children}</div>
   return (
     <section className={`${base} ${className}`}>
-      <header className={`flex items-start justify-between gap-4 border-b px-5 py-4 ${tone === 'dark' ? 'border-white/10' : 'border-line'}`}>
+      {/* Wraps rather than squeezes: a header action wide enough to matter — a
+          segmented control, say — has nowhere to go on a phone otherwise, and
+          pushes the card past the edge of the screen. */}
+      <header className={`flex flex-wrap items-start justify-between gap-x-4 gap-y-2.5 border-b px-5 py-4 ${tone === 'dark' ? 'border-white/10' : 'border-line'}`}>
         <div className="min-w-0">
           <h2 className={`text-[15px] font-bold ${tone === 'dark' ? 'text-white' : 'text-ink-900'}`}>{title}</h2>
           {description ? <p className={`mt-0.5 text-[13px] ${tone === 'dark' ? 'text-white/55' : 'text-ink-500'}`}>{description}</p> : null}
