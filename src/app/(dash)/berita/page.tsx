@@ -24,8 +24,8 @@ const FIELDS: TableField<Post>[] = [
   { key: 'publishedAt', label: 'Tanggal terbit', type: 'date', width: 150 },
   { key: 'coverImage', label: 'Sampul', type: 'image', width: 80 },
   { key: 'excerpt', label: 'Ringkasan', type: 'longtext', width: 320, hint: 'Muncul di kartu berita dan hasil pencarian Google.' },
-  { key: 'slug', label: 'Slug', type: 'text', width: 200, required: true, hint: 'Huruf kecil dan tanda hubung.' },
-  { key: 'content', label: 'Isi berita (HTML)', type: 'longtext', rows: 12, panelOnly: true, hint: 'Gunakan <p>, <h2>, <ul>, <li>, <strong>, <a>.' },
+  { key: 'slug', label: 'Slug', type: 'text', width: 200, required: true, hint: 'Gunakan huruf kecil dan tanda hubung (-). Contoh: rapat-anggota-tahunan-2026.' },
+  { key: 'content', label: 'Isi berita', type: 'richtext', panelOnly: true, hint: 'Tempel atau seret gambar langsung ke dalam tulisan. Tabel, tautan dan penomoran ada di baris tombol di atas.' },
 ]
 
 export default function PostsPage() {

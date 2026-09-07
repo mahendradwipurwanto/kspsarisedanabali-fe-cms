@@ -216,7 +216,7 @@ function NewPage({ onClose, onCreated }: { onClose: () => void; onCreated: (id: 
             placeholder="Contoh: Syarat Keanggotaan"
           />
         </Field>
-        <Field label="Alamat halaman (slug)" hint="Huruf kecil dan tanda hubung saja. Halaman akan terbuka di /alamat-ini.">
+        <Field label="Alamat halaman (slug)" hint="Gunakan huruf kecil dan tanda hubung (-). Halaman akan terbuka di /alamat-ini.">
           <input value={slug} onChange={(e) => { setTouched(true); setSlug(e.target.value) }} className={`${inputCls} mono`} placeholder="syarat-keanggotaan" />
         </Field>
       </div>

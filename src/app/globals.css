@@ -199,3 +199,67 @@ body {
   background-size: 11px 8px;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'><path d='M1 1.5 6 6.5l5-5' stroke='%235f6f85' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");
 }
+
+/* ── Rich text editor ─────────────────────────────────────────────────────
+   The article body as it will read on the website, at console scale. Table
+   and cell-selection rules come from ProseMirror rather than the theme, so
+   they are written out here rather than left to a plugin stylesheet. */
+.rte .rte-content {
+  padding: 1rem 1.15rem;
+  min-height: 18rem;
+  font-size: 14.5px;
+  line-height: 1.75;
+  color: var(--color-ink-700);
+  outline: none;
+}
+.rte .rte-content > * + * { margin-top: 0.9em; }
+.rte .rte-content h2 { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.02em; color: var(--color-ink-900); margin-top: 1.5em; }
+.rte .rte-content h3 { font-size: 1.08rem; font-weight: 700; letter-spacing: -0.01em; color: var(--color-ink-900); margin-top: 1.3em; }
+.rte .rte-content strong { color: var(--color-ink-900); font-weight: 700; }
+.rte .rte-content a { color: var(--color-green-700); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.rte .rte-content ul { list-style: disc; padding-left: 1.35rem; }
+.rte .rte-content ol { list-style: decimal; padding-left: 1.45rem; }
+.rte .rte-content li + li { margin-top: 0.35em; }
+.rte .rte-content li > p { margin: 0; }
+.rte .rte-content blockquote {
+  border-left: 2px solid var(--color-gold-400);
+  padding: 0.15rem 0 0.15rem 1rem;
+  color: var(--color-ink-600);
+}
+.rte .rte-content hr { border: 0; border-top: 1px solid var(--color-line); margin: 1.5em 0; }
+.rte .rte-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-tile);
+  border: 1px solid var(--color-line);
+}
+.rte .rte-content img.ProseMirror-selectednode { outline: 2px solid var(--color-green-600); outline-offset: 2px; }
+
+.rte .rte-content table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  overflow: hidden;
+  font-size: 13.5px;
+}
+.rte .rte-content th,
+.rte .rte-content td {
+  border: 1px solid var(--color-line-strong);
+  padding: 0.5rem 0.65rem;
+  vertical-align: top;
+  position: relative;
+  min-width: 3rem;
+}
+.rte .rte-content th { background: var(--color-paper); font-weight: 700; color: var(--color-ink-900); text-align: left; }
+.rte .rte-content .selectedCell::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgb(78 139 44 / 0.12);
+  pointer-events: none;
+}
+.rte .rte-content .column-resize-handle {
+  position: absolute; right: -2px; top: 0; bottom: 0; width: 4px;
+  background: var(--color-green-600);
+  pointer-events: none;
+}
+.rte .rte-content.resize-cursor { cursor: col-resize; }

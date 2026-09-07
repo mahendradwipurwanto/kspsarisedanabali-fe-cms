@@ -299,7 +299,7 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
                   <Field label="Judul halaman" required>
                     <input value={page.title} onChange={(e) => patch({ title: e.target.value })} className={inputCls} />
                   </Field>
-                  <Field label="Alamat halaman (slug)" hint={page.isSystem ? 'Halaman sistem: alamat tidak bisa diubah.' : 'Huruf kecil dan tanda hubung saja.'}>
+                  <Field label="Alamat halaman (slug)" hint={page.isSystem ? 'Halaman sistem: alamat tidak bisa diubah.' : 'Gunakan huruf kecil dan tanda hubung (-).'}>
                     <input value={page.slug} disabled={page.isSystem} onChange={(e) => patch({ slug: e.target.value })} className={`${inputCls} mono`} />
                   </Field>
                 </div>

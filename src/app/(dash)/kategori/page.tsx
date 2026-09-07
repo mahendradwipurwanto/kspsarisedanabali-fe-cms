@@ -9,7 +9,7 @@ const FIELDS: TableField<PostCategory>[] = [
   { key: 'name', label: 'Nama kategori', type: 'text', width: 260, required: true },
   {
     key: 'slug', label: 'Slug', type: 'text', width: 220, required: true,
-    hint: 'Huruf kecil dan tanda hubung. Dipakai di alamat /berita?kategori=…',
+    hint: 'Gunakan huruf kecil dan tanda hubung (-). Dipakai di alamat /berita?kategori=…',
   },
   {
     key: 'description', label: 'Keterangan', type: 'longtext', width: 340, rows: 3,

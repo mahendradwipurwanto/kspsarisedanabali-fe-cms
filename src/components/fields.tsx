@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 /* ─────────────────────────────── field model ────────────────────────────── */
 
 export type FieldType =
-  | 'text' | 'longtext' | 'number' | 'currency' | 'percent'
+  | 'text' | 'longtext' | 'richtext' | 'number' | 'currency' | 'percent'
   | 'select' | 'boolean' | 'date' | 'list' | 'link' | 'image' | 'file' | 'readonly'
   | 'tel' | 'email' | 'url'
 
@@ -96,6 +96,8 @@ export function fieldText<T>(row: T, f: TableField<T>): string {
     case 'number': return idr.format(Number(v))
     case 'date': return dateFmt.format(new Date(String(v)))
     case 'list': return Array.isArray(v) ? (v as string[]).join(' · ') : String(v)
+    // Rich text is stored as HTML; the reader searches the words, not the tags.
+    case 'richtext': return String(v).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
     default: return String(v)
   }
 }
@@ -158,7 +160,7 @@ function Cell<T>({ row, field, primary }: { row: T; field: TableField<T>; primar
     )
   }
 
-  if (field.type === 'longtext') return <span className="line-clamp-2 text-ink-600">{text}</span>
+  if (field.type === 'longtext' || field.type === 'richtext') return <span className="line-clamp-2 text-ink-600">{text}</span>
   if (field.type === 'link') return <span className="mono block truncate text-[12.5px] text-ink-600">{text}</span>
   return <span className={cn('block truncate', isNumeric(field.type) && 'tnum whitespace-nowrap tabular-nums')}>{text}</span>
 }

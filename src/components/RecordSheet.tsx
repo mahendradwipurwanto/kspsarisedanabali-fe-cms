@@ -5,6 +5,7 @@ import { ImagePlus, Trash2, Upload, X, FileText } from 'lucide-react'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from './ui/sheet'
 import { Button, IconButton, inputCls, selectCls, Field, Switch, Alert } from './ui'
 import { MediaPicker } from './MediaPicker'
+import { RichTextEditor } from './RichTextEditor'
 import { toast } from 'sonner'
 import { uploadDocument } from '@/lib/api'
 import { mediaSrc } from '@/lib/api'
@@ -137,6 +138,8 @@ export function RecordSheet<T extends { id: string }>({
                 <Field key={f.key} label={f.label} hint={f.hint} required={f.required} error={fieldErrors[f.key]}>
                   {f.type === 'longtext' ? (
                     <textarea rows={f.rows ?? 4} value={String(v ?? '')} disabled={!canWrite} onChange={(e) => set(f.key, e.target.value)} className={inputCls} />
+                  ) : f.type === 'richtext' ? (
+                    <RichTextEditor value={String(v ?? '')} disabled={!canWrite} onChange={(html) => set(f.key, html)} />
                   ) : f.type === 'list' ? (
                     <textarea
                       rows={f.rows ?? 4}
