@@ -45,6 +45,15 @@ export interface FieldOption {
   value: string
   label: string
   variant?: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' | 'outline'
+  /**
+   * Shown, and shown as a badge on rows that already hold it, but not
+   * selectable — for a choice the API reserves to a permission this reader
+   * does not have. Removing the option outright would leave an existing row
+   * with nothing to render.
+   */
+  disabled?: boolean
+  /** Why it cannot be chosen, as a tooltip on the option. */
+  disabledReason?: string
 }
 
 export interface TableField<T = Record<string, unknown>> {

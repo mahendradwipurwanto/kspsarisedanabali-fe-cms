@@ -1,7 +1,9 @@
 'use client'
 
+import { useMemo } from 'react'
 import { CalendarClock, Newspaper } from 'lucide-react'
 import { ResourceList, type TableField } from '@/components/ResourceList'
+import { useAuth } from '@/lib/auth-context'
 import { Alert, fmtDate } from '@/components/ui'
 import { Badge } from '@/components/ui/badge'
 
@@ -31,7 +33,11 @@ const FIELDS: TableField<Post>[] = [
   { key: 'title', label: 'Judul', type: 'text', width: 300, required: true, secondary: (r) => `/${r.slug}` },
   {
     key: 'status', label: 'Status', type: 'select', width: 120,
-    options: [{ value: 'draft', label: 'Draf', variant: 'secondary' }, { value: 'review', label: 'Review', variant: 'warning' }, { value: 'published', label: 'Terbit', variant: 'success' }],
+    options: [
+      { value: 'draft', label: 'Draf', variant: 'secondary' },
+      { value: 'review', label: 'Review', variant: 'warning' },
+      { value: 'published', label: 'Terbit', variant: 'success' },
+    ],
   },
   {
     key: 'live', label: 'Di website', type: 'readonly', width: 170,
@@ -58,6 +64,28 @@ const FIELDS: TableField<Post>[] = [
 ]
 
 export default function PostsPage() {
+  const { can } = useAuth()
+
+  /**
+   * "Terbit" is offered only to someone who may publish.
+   *
+   * The API refuses a status of published without `posts:publish`, whichever
+   * route sets it, so leaving the option live would hand a Kontributor a
+   * choice that comes back 403. It stays in the list rather than being removed
+   * so a story that is already published still renders its badge.
+   */
+  const fields = useMemo(() => {
+    if (can('posts:publish')) return FIELDS
+    return FIELDS.map((f) => (f.key !== 'status' ? f : {
+      ...f,
+      options: f.options?.map((o) => (o.value !== 'published' ? o : {
+        ...o,
+        disabled: true,
+        disabledReason: 'Membutuhkan hak akses "Menerbitkan berita". Simpan sebagai Review agar bisa diterbitkan orang lain.',
+      })),
+    }))
+  }, [can])
+
   return (
     <ResourceList<Post>
       title="Berita"
@@ -68,7 +96,7 @@ export default function PostsPage() {
       deletePermission="posts:delete"
       emptyIcon={<Newspaper className="size-5" />}
       emptyBody="Tulis berita pertama agar pengunjung melihat aktivitas koperasi."
-      fields={FIELDS}
+      fields={fields}
       recordTitle={(r) => r.title}
       // An empty picker means "no category"; the API stores that as null.
       transformOut={(v) => ({ ...v, categoryId: v.categoryId ? v.categoryId : null })}

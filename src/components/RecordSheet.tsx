@@ -227,7 +227,11 @@ export function RecordSheet<T extends { id: string }>({
                   ) : f.type === 'select' ? (
                     <select value={String(v ?? '')} disabled={!canWrite} onChange={(e) => set(f.key, e.target.value)} className={selectCls}>
                       <option value="">— pilih —</option>
-                      {(f.options ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      {(f.options ?? []).map((o) => (
+                        <option key={o.value} value={o.value} disabled={o.disabled} title={o.disabledReason}>
+                          {o.label}{o.disabled ? ' — tidak diizinkan' : ''}
+                        </option>
+                      ))}
                     </select>
                   ) : f.type === 'slug' ? (
                     <input
