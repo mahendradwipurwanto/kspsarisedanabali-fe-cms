@@ -20,6 +20,7 @@ export default function ProfileSettingsPage() {
       <PageHeader
         eyebrow="Website"
         title="Profil & legalitas"
+        stickyAction
         subtitle="Legalitas dan susunan organisasi koperasi. Dipakai di footer, bilah legalitas, dan blok Struktur Organisasi."
         action={<Button variant="dark" onClick={() => void s.save(['legal', 'organization'])} loading={s.saving} disabled={!s.dirty}>Simpan perubahan</Button>}
       />

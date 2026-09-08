@@ -156,10 +156,12 @@ export function PageHeader({
           {/* Watched, not drawn: it marks where the heading ends. */}
           <div ref={mark} aria-hidden="true" className="-mt-6 h-px" />
           {/* A negative margin equal to its own height keeps it out of the flow,
-              so nothing on the page moves when it appears. */}
+              so nothing on the page moves when it appears. The shadow is what
+              separates it from whatever is passing underneath — without one the
+              bar and the card below it read as a single crowded block. */}
           <div
-            className={`sticky top-14 z-10 -mx-4 -mb-[60px] flex h-[60px] items-center justify-between gap-3 border-b border-line bg-paper/92 px-4 backdrop-blur transition-opacity duration-200 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 ${
-              stuck ? 'opacity-100' : 'pointer-events-none opacity-0'
+            className={`sticky top-14 z-10 -mx-4 -mb-[68px] flex h-[68px] items-center justify-between gap-3 border-b border-line bg-paper/95 px-4 backdrop-blur transition-opacity duration-200 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 ${
+              stuck ? 'opacity-100 shadow-[0_10px_20px_-16px_rgb(15_27_45/0.45)]' : 'pointer-events-none opacity-0'
             }`}
           >
             <p className="truncate text-[13.5px] font-bold text-ink-900">{title}</p>

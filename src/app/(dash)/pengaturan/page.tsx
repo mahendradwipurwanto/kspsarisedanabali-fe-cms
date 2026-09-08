@@ -61,6 +61,7 @@ export default function IdentityPage() {
       <PageHeader
         eyebrow="Website"
         title="Identitas"
+        stickyAction
         subtitle="Nama, logo dan kontak yang dipakai di seluruh halaman. Ubah sekali, berlaku di mana-mana."
         action={<Button variant="dark" onClick={save} loading={s.saving} disabled={!s.dirty}>Simpan perubahan</Button>}
       />
