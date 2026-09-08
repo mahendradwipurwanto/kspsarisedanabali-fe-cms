@@ -1,16 +1,15 @@
 'use client'
 
-import { useEffect, useState, type ComponentType } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ChevronDown, ChevronRight, ChevronUp, GripVertical, Plus, Trash2, ImagePlus, X, Copy,
-  Sparkles, Calculator, MapPin, Phone, Users, TrendingUp, Wallet, Handshake, PiggyBank, Award, Star,
-  ShieldCheck, Building2, Percent, Briefcase, FileText, Mail, Clock, Compass, Leaf, Check, Home, Newspaper,
 } from 'lucide-react'
-import { ICON_NAMES, type FieldDef, type FieldMap } from '@/contracts'
+import { type FieldDef, type FieldMap } from '@/contracts'
 import { api, mediaSrc } from '@/lib/api'
 import { Button, IconButton, inputCls, selectCls, Field, Switch } from './ui'
 import { MediaPicker } from './MediaPicker'
 import { LinkInput, linkLabel, useLinkOptions } from './link-options'
+import { Counter, IconGrid } from './icons'
 
 /**
  * Schema-driven form renderer.
@@ -29,7 +28,7 @@ export function BlockForm({
   dense?: boolean
 }) {
   return (
-    <div className={`grid ${dense ? 'gap-3.5' : 'gap-5'}`}>
+    <div className={`grid ${dense ? 'gap-3.5' : 'gap-5'} [&>*]:min-w-0`}>
       {Object.entries(fields).map(([key, def]) => (
         <FieldInput
           key={key}
@@ -43,10 +42,6 @@ export function BlockForm({
     </div>
   )
 }
-
-export const Counter = ({ len, max }: { len: number; max: number }) => (
-  <span className={`tnum text-[11.5px] ${len > max ? 'text-red-600' : len > max * 0.9 ? 'text-gold-600' : 'text-ink-400'}`}>{len}/{max}</span>
-)
 
 function FieldInput({
   name, def, value, onChange, error,
@@ -207,13 +202,6 @@ function RichTextArea({ value, onChange }: { value: string; onChange: (v: string
 
 /* ─────────────────────────────── icons ──────────────────────────────── */
 
-export const ICONS: Record<string, ComponentType<{ className?: string }>> = {
-  spark: Sparkles, calculator: Calculator, 'map-pin': MapPin, phone: Phone, users: Users, 'trending-up': TrendingUp,
-  wallet: Wallet, handshake: Handshake, 'piggy-bank': PiggyBank, award: Award, star: Star, 'shield-check': ShieldCheck,
-  building: Building2, percent: Percent, briefcase: Briefcase, 'file-text': FileText, mail: Mail, clock: Clock,
-  compass: Compass, leaf: Leaf, check: Check, home: Home, newspaper: Newspaper,
-}
-
 function IconField({
   label, hint, error, required, value, onChange,
 }: { label: string; hint?: string; error?: string; required?: boolean; value: string; onChange: (v: string) => void }) {
@@ -221,34 +209,6 @@ function IconField({
     <Field label={label} hint={hint} error={error} required={required}>
       <IconGrid value={value} onChange={onChange} />
     </Field>
-  )
-}
-
-/** The icons the website can draw, as a grid to pick from. */
-export function IconGrid({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
-  return (
-    <>
-      <div className="grid grid-cols-7 gap-1.5 rounded-[var(--radius-input)] border border-line bg-white p-2 sm:grid-cols-11">
-        {ICON_NAMES.map((name) => {
-          const IconCmp = ICONS[name] ?? Sparkles
-          const active = value === name
-          return (
-            <button
-              key={name}
-              type="button"
-              title={name}
-              aria-pressed={active}
-              disabled={disabled}
-              onClick={() => onChange(active ? '' : name)}
-              className={`grid aspect-square place-items-center rounded-[6px] border transition-colors ${active ? 'border-ink-900 bg-ink-900 text-gold-300' : 'border-transparent text-ink-600 hover:border-line hover:bg-paper hover:text-ink-900'}`}
-            >
-              <IconCmp className="size-4" />
-            </button>
-          )
-        })}
-      </div>
-      {value ? <span className="mono mt-1.5 block text-[11px] text-ink-400">{value}</span> : null}
-    </>
   )
 }
 
@@ -266,7 +226,15 @@ function ImageField({
         <div className="flex items-center gap-3 rounded-[var(--radius-input)] border border-line bg-white p-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={mediaSrc(value)} alt="" className="size-16 shrink-0 rounded-[6px] bg-paper object-cover" />
-          <span className="mono min-w-0 flex-1 truncate text-[11.5px] text-ink-500">{value.replace(/^https?:\/\/[^/]+\//, '').replace(/^\/api\/media\//, '')}</span>
+          {/* The name, not the whole storage path: printing the folder and the
+              ULID left nothing to recognise the picture by, and its width was
+              what pushed this card past its own edge. */}
+          <span
+            className="mono min-w-0 flex-1 break-all text-[11.5px] leading-snug text-ink-500 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden"
+            title={value}
+          >
+            {(value.split('/').pop() ?? value).replace(/^[0-9A-HJKMNP-TV-Z]{26}-/i, '')}
+          </span>
           <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>Ganti</Button>
           <IconButton label="Hapus gambar" onClick={() => onChange('')} className="hover:!text-red-600"><X className="size-4" /></IconButton>
         </div>
@@ -395,7 +363,7 @@ function RepeaterField({
           Belum ada {itemLabel.toLowerCase()}. Klik “{itemLabel}” untuk menambah.
         </p>
       ) : (
-        <ul className="grid gap-2">
+        <ul className="grid gap-2 [&>*]:min-w-0">
           {value.map((item, i) => {
             const isOpen = open.has(i)
             const isOver = over === i && dragging !== null && dragging !== i

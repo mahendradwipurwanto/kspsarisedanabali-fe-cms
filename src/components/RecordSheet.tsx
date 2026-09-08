@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Button, IconButton, inputCls, selectCls, Field, Switch, Alert } from './ui'
 import { MediaPicker } from './MediaPicker'
 import { RichTextEditor } from './RichTextEditor'
-import { Counter, IconGrid } from './BlockForm'
+import { Counter, IconGrid } from './icons'
 import { toast } from 'sonner'
 import { uploadDocument } from '@/lib/api'
 import { mediaSrc } from '@/lib/api'

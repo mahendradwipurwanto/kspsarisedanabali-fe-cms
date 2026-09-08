@@ -8,7 +8,7 @@ import { Badge } from './ui/badge'
 import { Checkbox } from './ui/checkbox'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { SortHeader } from './DataTable'
-import { ICONS } from './BlockForm'
+import { ICONS } from './icons'
 import { mediaSrc } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
