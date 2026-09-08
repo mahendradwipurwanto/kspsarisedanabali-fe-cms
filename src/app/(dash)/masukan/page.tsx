@@ -292,7 +292,11 @@ function DetailSheet({
   const rowId = row?.id
   useEffect(() => {
     setStatus(row?.status ?? '')
-    setNote(row?.note ?? '')
+    // Empty, not the last note. Every save appends a new entry to the history,
+    // so reopening a piece of feedback with the previous note already in the
+    // box meant a second follow-up filed the first one again, word for word.
+    // The earlier note is still shown — read-only, just above.
+    setNote('')
   }, [row])
 
   // What has been done about it, newest first. A single note column only ever
@@ -316,7 +320,10 @@ function DetailSheet({
   async function save() {
     setBusy(true)
     try {
-      const res = await api.patch<{ data: Feedback }>(`/feedback/${row!.id}`, { status, note })
+      // An empty box is "nothing to add this time", not "erase what was
+      // written before": sending "" would clear the stored note, and the panel
+      // above would lose the previous follow-up it exists to show.
+      const res = await api.patch<{ data: Feedback }>(`/feedback/${row!.id}`, { status, note: note.trim() || undefined })
       toast.success('Masukan diperbarui')
       onSaved(res.data)
     } catch (e) {
@@ -384,12 +391,25 @@ function DetailSheet({
 
         {editable ? (
           <div className="grid gap-3 border-t border-line pt-4 sm:grid-cols-[200px_minmax(0,1fr)]">
+            {row.note ? (
+              <div className="sm:col-span-2">
+                <Field label="Catatan sebelumnya" hint="Tindak lanjut yang terakhir dicatat. Ditampilkan supaya tidak terulang; catatan lama tidak bisa diubah — tulis yang baru di bawah.">
+                  <textarea
+                    readOnly
+                    rows={2}
+                    value={row.note}
+                    aria-label="Catatan tindak lanjut sebelumnya"
+                    className={cn(inputCls, 'cursor-default resize-none bg-paper text-ink-600 focus:ring-0')}
+                  />
+                </Field>
+              </div>
+            ) : null}
             <Field label="Status">
               <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectCls}>
                 {FEEDBACK_STATUSES.map((s) => <option key={s} value={s}>{FEEDBACK_STATUS_LABELS[s]}</option>)}
               </select>
             </Field>
-            <Field label="Catatan tindak lanjut" hint="Tersimpan di riwayat di atas, lengkap dengan nama dan waktunya. Tidak terlihat oleh pengirim.">
+            <Field label="Catatan tindak lanjut baru" hint="Tersimpan di riwayat di atas, lengkap dengan nama dan waktunya. Tidak terlihat oleh pengirim.">
               <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} placeholder="Tindak lanjut yang sudah dilakukan…" />
             </Field>
             {isFeedbackClosed(status) ? (
