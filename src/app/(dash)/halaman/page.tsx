@@ -15,6 +15,7 @@ import { LP_URL as LP } from '@/lib/site'
 
 interface Row {
   id: string; title: string; slug: string; status: string; isSystem: boolean
+  showInFooter?: boolean
   updatedAt: string; updatedByName?: string | null; blockCount: number
 }
 
@@ -40,6 +41,7 @@ const FIELDS: TableField<Row>[] = [
   { key: 'updatedAt', label: 'Terakhir diubah', type: 'readonly', width: 170, get: (r) => fmtRelative(r.updatedAt) },
   { key: 'updatedByName', label: 'Oleh', type: 'readonly', width: 150 },
   { key: 'slug', label: 'Alamat', type: 'readonly', hiddenByDefault: true, get: (r) => `/${r.slug === '/' ? '' : r.slug}` },
+  { key: 'showInFooter', label: 'Di footer', type: 'boolean', width: 110, hiddenByDefault: true },
 ]
 
 export default function PagesList() {

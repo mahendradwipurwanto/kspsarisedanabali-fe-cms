@@ -24,6 +24,7 @@ import { LP_URL as LP } from '@/lib/site'
 interface Block { id?: string; type: string; props: Record<string, unknown>; isVisible: boolean }
 interface Page {
   id: string; title: string; slug: string; status: string; isSystem: boolean
+  showInFooter?: boolean
   seo: Record<string, string | boolean | undefined>; blocks: Block[]
   publishedAt?: string | null; updatedAt?: string | null
 }
@@ -176,7 +177,10 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
     if (!page || saving) return
     setSaving(true)
     try {
-      const saved = await api.patch<Refreshable>(`/pages/${page.id}`, { title: page.title, slug: page.slug, seo: page.seo, blocks: page.blocks })
+      const saved = await api.patch<Refreshable>(`/pages/${page.id}`, {
+        title: page.title, slug: page.slug, seo: page.seo, blocks: page.blocks,
+        showInFooter: Boolean(page.showInFooter),
+      })
       if (publish) {
         const res = await api.post<Refreshable>(`/pages/${page.id}/publish`)
         setPage((p) => (p ? { ...p, status: 'published' } : p))
@@ -302,6 +306,16 @@ export default function PageEditor({ params }: { params: Promise<{ id: string }>
                   <Field label="Alamat halaman (slug)" hint={page.isSystem ? 'Halaman sistem: alamat tidak bisa diubah.' : 'Gunakan huruf kecil dan tanda hubung (-).'}>
                     <input value={page.slug} disabled={page.isSystem} onChange={(e) => patch({ slug: e.target.value })} className={`${inputCls} mono`} />
                   </Field>
+
+                  {/* The footer's bottom row used to be every published page, so
+                      anything made here turned up beside the privacy policy on
+                      its own. It is asked for now. */}
+                  <Switch
+                    checked={Boolean(page.showInFooter)}
+                    onChange={(v) => patch({ showInFooter: v })}
+                    label="Tampilkan di footer"
+                    hint="Menambahkan tautan ke halaman ini di baris bawah footer, di samping hak cipta. Untuk halaman seperti Kebijakan Privasi dan Syarat & Ketentuan."
+                  />
                 </div>
                 <div className="mt-4 grid gap-4">
                   <Field label="Kata kunci utama" hint="Satu frasa yang paling ingin dicari orang untuk menemukan halaman ini, misalnya “pinjaman koperasi karangasem”. Dipakai untuk memeriksa penempatan, tidak ditampilkan di website.">
