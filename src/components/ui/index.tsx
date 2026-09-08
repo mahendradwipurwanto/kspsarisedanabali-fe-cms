@@ -142,7 +142,7 @@ export function PageHeader({
 
   return (
     <>
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className={`flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between ${stickyAction ? 'mb-8' : 'mb-6'}`}>
         <div className="min-w-0">
           {eyebrow ? <p className="t-label mb-1.5">{eyebrow}</p> : null}
           <h1 className="text-[22px] font-extrabold tracking-[-0.02em] text-ink-900 sm:text-[26px]">{title}</h1>
@@ -153,8 +153,11 @@ export function PageHeader({
 
       {stickyAction && action ? (
         <>
-          {/* Watched, not drawn: it marks where the heading ends. */}
-          <div ref={mark} aria-hidden="true" className="-mt-6 h-px" />
+          {/* Watched, not drawn: it marks where the heading ends. Height zero
+              and no negative margin — an earlier `-mt-6` here quietly cancelled
+              the heading's own bottom margin, which is why the save button ended
+              up sitting on the first card. */}
+          <div ref={mark} aria-hidden="true" className="h-0" />
           {/* A negative margin equal to its own height keeps it out of the flow,
               so nothing on the page moves when it appears. The shadow is what
               separates it from whatever is passing underneath — without one the

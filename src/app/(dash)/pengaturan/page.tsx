@@ -95,7 +95,7 @@ export default function IdentityPage() {
           </Card>
         </div>
 
-        <div className="grid h-fit min-w-0 gap-4 xl:sticky xl:top-20">
+        <div className="grid h-fit min-w-0 gap-4 xl:sticky xl:top-32">
           <PreviewCard title="Pratinjau merek" description="Kira-kira begini di header dan footer.">
             <div className="grid gap-3">
               <div className="flex items-center gap-3 rounded-[var(--radius-tile)] border border-line bg-white p-3">
