@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import {
   ChevronDown, ChevronRight, ChevronUp, GripVertical, Plus, Trash2, ImagePlus, X, Copy,
 } from 'lucide-react'
-import { type FieldDef, type FieldMap } from '@/contracts'
+import { TRACKING_KEYS, type FieldDef, type FieldMap } from '@/contracts'
 import { api, mediaSrc } from '@/lib/api'
 import { Button, IconButton, inputCls, selectCls, Field, Switch } from './ui'
 import { MediaPicker } from './MediaPicker'
@@ -27,18 +27,43 @@ export function BlockForm({
   errors?: Record<string, string>
   dense?: boolean
 }) {
+  const entries = Object.entries(fields)
+  // Tracking is on every block and wanted on almost none of them, so it sits
+  // folded away at the end rather than between two fields about the content.
+  const content = entries.filter(([key]) => !TRACKING_KEYS.includes(key))
+  const tracking = entries.filter(([key]) => TRACKING_KEYS.includes(key))
+  const tracked = tracking.some(([key]) => String(value[key] ?? '').trim())
+
+  const render = ([key, def]: [string, FieldDef]) => (
+    <FieldInput
+      key={key}
+      name={key}
+      def={def}
+      value={value[key]}
+      error={errors?.[key]}
+      onChange={(v) => onChange({ ...value, [key]: v })}
+    />
+  )
+
   return (
     <div className={`grid ${dense ? 'gap-3.5' : 'gap-5'} [&>*]:min-w-0`}>
-      {Object.entries(fields).map(([key, def]) => (
-        <FieldInput
-          key={key}
-          name={key}
-          def={def}
-          value={value[key]}
-          error={errors?.[key]}
-          onChange={(v) => onChange({ ...value, [key]: v })}
-        />
-      ))}
+      {content.map(render)}
+
+      {tracking.length ? (
+        <details open={tracked} className="group/track rounded-[var(--radius-input)] border border-line bg-paper">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-3.5 py-2.5 text-[12.5px] font-semibold text-ink-600 hover:text-ink-900">
+            <ChevronRight className="size-3.5 transition-transform group-open/track:rotate-90" aria-hidden="true" />
+            Pelacakan (Google Tag Manager)
+            {tracked ? <span className="ml-auto text-[11.5px] font-medium text-green-700">aktif</span> : null}
+          </summary>
+          <div className="grid gap-3.5 border-t border-line px-3.5 py-3.5">
+            <p className="text-[12px] leading-relaxed text-ink-500">
+              Beri nama bagian ini agar bisa dijadikan pemicu di Google Tag Manager. Kosongkan bila tidak diukur — tidak ada apa pun yang ditambahkan ke halaman.
+            </p>
+            {tracking.map(render)}
+          </div>
+        </details>
+      ) : null}
     </div>
   )
 }
