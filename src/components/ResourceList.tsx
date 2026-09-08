@@ -34,7 +34,12 @@ export function ResourceList<T extends { id: string }>({
   canCreate?: boolean
   canDelete?: boolean
   recordTitle?: (row: T) => string
-  panelNote?: ReactNode
+  /**
+   * Shown at the foot of the record panel. A function is given the values
+   * currently in the form, so a note can react to what the editor has typed
+   * — Berita uses it to say a post dated in the future is not on the site yet.
+   */
+  panelNote?: ReactNode | ((values: Record<string, unknown>) => ReactNode)
   headerAction?: ReactNode
 }) {
   const { can } = useAuth()
@@ -208,7 +213,7 @@ export function ResourceList<T extends { id: string }>({
         subtitle={record?.row ? `id ${record.row.id}` : undefined}
         busy={saving}
         canWrite={canWrite}
-        note={panelNote}
+        note={typeof panelNote === 'function' ? panelNote(record?.values ?? {}) : panelNote}
       />
     </>
   )
