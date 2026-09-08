@@ -229,6 +229,15 @@ export function RecordSheet<T extends { id: string }>({
                       <option value="">— pilih —</option>
                       {(f.options ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
+                  ) : f.type === 'slug' ? (
+                    <input
+                      value={String(v ?? '')}
+                      maxLength={f.max}
+                      disabled={!canWrite}
+                      placeholder={f.placeholder ?? 'kegiatan-sosial'}
+                      onChange={(e) => set(f.key, e.target.value)}
+                      className={`${inputCls} mono`}
+                    />
                   ) : f.type === 'icon' ? (
                     <IconGrid value={String(v ?? '')} disabled={!canWrite} onChange={(name) => set(f.key, name)} />
                   ) : f.type === 'stars' ? (

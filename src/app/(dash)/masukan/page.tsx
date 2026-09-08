@@ -1,15 +1,17 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { MessageSquareHeart, Star, Mail, PhoneCall } from 'lucide-react'
+import { MessageSquareHeart, Star, Mail, PhoneCall, Pencil, Eye, History, Ban } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-  FEEDBACK_CATEGORIES, FEEDBACK_CATEGORY_LABELS, FEEDBACK_STATUSES, FEEDBACK_STATUS_LABELS, waLink,
+  FEEDBACK_CATEGORIES, FEEDBACK_CATEGORY_LABELS, FEEDBACK_STATUSES, FEEDBACK_STATUS_LABELS,
+  isFeedbackClosed, waLink,
 } from '@/contracts'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { useConfirm } from '@/components/confirm'
-import { PageHeader, Spinner, Empty, Button, Modal, Field, inputCls, selectCls, Pill, fmtDateTime } from '@/components/ui'
+import { PageHeader, Spinner, Empty, Button, Modal, Field, Alert, inputCls, selectCls, Pill, fmtDateTime } from '@/components/ui'
+import { cn } from '@/lib/utils'
 import { DataTable } from '@/components/DataTable'
 import { buildColumns, defaultHidden, type TableField } from '@/components/fields'
 
@@ -29,6 +31,15 @@ interface Feedback {
   branchName?: string | null
   handledByName?: string | null
 }
+
+/** One entry of a piece of feedback's history: a status change or a note. */
+interface FeedbackEvent {
+  id: string; type: string; fromValue?: string | null; toValue?: string | null
+  note?: string | null; userName?: string | null; createdAt: string
+}
+
+/** Selesai closes it — the API refuses further changes, as it does for a lead. */
+const closed = (row: { status: string }) => isFeedbackClosed(row.status)
 
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'secondary' | 'destructive'> = {
   baru: 'success', dibaca: 'warning', ditindaklanjuti: 'warning', selesai: 'secondary',
@@ -124,8 +135,38 @@ export default function FeedbackPage() {
       selectable: false,
       canWrite: can('feedback:update'),
       onDelete: can('feedback:delete') ? remove : undefined,
+      // A closed one opens read-only, so the menu says so rather than offering
+      // an edit the API will refuse.
+      extraActions: [
+        {
+          label: 'Tindak lanjuti',
+          icon: <Pencil className="size-3.5" />,
+          onSelect: (row) => void open(row),
+          hidden: (row) => closed(row) || !canUpdate,
+        },
+        {
+          label: 'Lihat detail',
+          icon: <Eye className="size-3.5" />,
+          onSelect: (row) => void open(row),
+          hidden: (row) => !closed(row) && canUpdate,
+        },
+        {
+          label: 'Balas lewat WhatsApp',
+          icon: <PhoneCall className="size-3.5" />,
+          onSelect: (row) => {
+            if (row.phone) window.open(waLink(row.phone, `Halo ${row.name || ''}, terima kasih atas masukan Anda untuk KSP Sari Sedana Bali.`), '_blank', 'noopener')
+          },
+          hidden: (row) => !row.phone,
+        },
+        {
+          label: 'Balas lewat email',
+          icon: <Mail className="size-3.5" />,
+          onSelect: (row) => { if (row.email) window.location.href = `mailto:${row.email}` },
+          hidden: (row) => !row.email,
+        },
+      ],
     }),
-    [can, remove],
+    [can, canUpdate, open, remove],
   )
 
   if (loading && !rows.length) return <Spinner />
@@ -186,6 +227,42 @@ export default function FeedbackPage() {
   )
 }
 
+/** What one history entry says, in the words staff use. */
+function eventLine(e: FeedbackEvent): string {
+  const label = (v?: string | null) => (v ? FEEDBACK_STATUS_LABELS[v as keyof typeof FEEDBACK_STATUS_LABELS] ?? v : '—')
+  if (e.type === 'status_change') return e.fromValue ? `Status diubah dari ${label(e.fromValue)} ke ${label(e.toValue)}` : `Status ${label(e.toValue)}`
+  return 'Catatan tindak lanjut'
+}
+
+/** Every status change and note on one piece of feedback, newest first. */
+function FeedbackTimeline({ events }: { events: FeedbackEvent[] | null }) {
+  return (
+    <section className="border-t border-line pt-4">
+      <h3 className="mb-3 flex items-center gap-1.5 text-[13px] font-bold text-ink-900">
+        <History className="size-3.5 text-ink-400" aria-hidden="true" /> Riwayat tindak lanjut
+      </h3>
+      {events === null ? (
+        <p className="text-[13px] text-ink-400">Memuat riwayat…</p>
+      ) : events.length === 0 ? (
+        <p className="text-[13px] text-ink-400">Belum ada tindak lanjut yang tercatat.</p>
+      ) : (
+        <ol className="grid gap-3">
+          {events.map((e) => (
+            <li key={e.id} className="relative border-l border-line pl-4">
+              <span className={cn('absolute -left-[3.5px] top-1.5 size-[7px] rounded-full', e.type === 'note' ? 'bg-gold-500' : 'bg-green-600')} aria-hidden="true" />
+              <p className="text-[13px] font-semibold text-ink-900">{eventLine(e)}</p>
+              {e.note ? <p className="mt-0.5 whitespace-pre-line text-[13px] leading-relaxed text-ink-700">{e.note}</p> : null}
+              <p className="mt-0.5 text-[12px] text-ink-400">
+                {fmtDateTime(e.createdAt)}{e.userName ? ` · ${e.userName}` : ''}
+              </p>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  )
+}
+
 function Stat({ icon, label, value, tone = 'plain' }: { icon: React.ReactNode; label: string; value: string; tone?: 'plain' | 'alert' }) {
   return (
     <div className={`surface flex items-center gap-3 p-4 ${tone === 'alert' ? 'ring-1 ring-inset ring-gold-300' : ''}`}>
@@ -210,13 +287,31 @@ function DetailSheet({
   const [status, setStatus] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  const [timeline, setTimeline] = useState<FeedbackEvent[] | null>(null)
 
+  const rowId = row?.id
   useEffect(() => {
     setStatus(row?.status ?? '')
     setNote(row?.note ?? '')
   }, [row])
 
+  // What has been done about it, newest first. A single note column only ever
+  // held the last thing anyone wrote.
+  useEffect(() => {
+    if (!rowId) { setTimeline(null); return }
+    let live = true
+    setTimeline(null)
+    void api
+      .get<{ timeline: FeedbackEvent[] }>(`/feedback/${rowId}`)
+      .then((r) => { if (live) setTimeline(r.timeline) })
+      .catch(() => { if (live) setTimeline([]) })
+    return () => { live = false }
+  }, [rowId])
+
   if (!row) return null
+
+  const done = closed(row)
+  const editable = canUpdate && !done
 
   async function save() {
     setBusy(true)
@@ -241,9 +336,9 @@ function DetailSheet({
       description={`${FEEDBACK_CATEGORY_LABELS[row.category as keyof typeof FEEDBACK_CATEGORY_LABELS] ?? row.category} · masuk ${fmtDateTime(row.createdAt)}`}
       size="lg"
       footer={
-        canUpdate ? (
+        editable ? (
           <>
-            <Button variant="secondary" onClick={onClose}>Tutup</Button>
+            <Button variant="secondary" onClick={onClose}>Batal</Button>
             <Button variant="dark" onClick={save} loading={busy}>Simpan</Button>
           </>
         ) : (
@@ -252,6 +347,13 @@ function DetailSheet({
       }
     >
       <div className="grid gap-4">
+        {done ? (
+          <Alert tone="green">
+            <span className="inline-flex items-center gap-1.5"><Ban className="size-3.5" aria-hidden="true" /> Masukan ini sudah selesai.</span>{' '}
+            Statusnya tidak bisa diubah lagi dan catatan baru tidak bisa ditambahkan. Riwayatnya tetap bisa dibaca di bawah.
+          </Alert>
+        ) : null}
+
         <div className="flex flex-wrap items-center gap-2">
           <Pill tone={row.status === 'baru' ? 'green' : row.status === 'selesai' ? 'grey' : 'amber'} dot>
             {FEEDBACK_STATUS_LABELS[row.status as keyof typeof FEEDBACK_STATUS_LABELS] ?? row.status}
@@ -278,21 +380,23 @@ function DetailSheet({
           </span>
         </div>
 
-        {canUpdate ? (
+        <FeedbackTimeline events={timeline} />
+
+        {editable ? (
           <div className="grid gap-3 border-t border-line pt-4 sm:grid-cols-[200px_minmax(0,1fr)]">
             <Field label="Status">
               <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectCls}>
                 {FEEDBACK_STATUSES.map((s) => <option key={s} value={s}>{FEEDBACK_STATUS_LABELS[s]}</option>)}
               </select>
             </Field>
-            <Field label="Catatan internal" hint="Tidak terlihat oleh pengirim.">
+            <Field label="Catatan tindak lanjut" hint="Tersimpan di riwayat di atas, lengkap dengan nama dan waktunya. Tidak terlihat oleh pengirim.">
               <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} placeholder="Tindak lanjut yang sudah dilakukan…" />
             </Field>
-          </div>
-        ) : row.note ? (
-          <div className="border-t border-line pt-4">
-            <p className="text-[12px] text-ink-400">Catatan internal</p>
-            <p className="mt-1 whitespace-pre-wrap text-[13.5px] text-ink-700">{row.note}</p>
+            {isFeedbackClosed(status) ? (
+              <div className="sm:col-span-2">
+                <Alert tone="amber">Setelah disimpan sebagai Selesai, masukan ini tidak bisa diubah lagi.</Alert>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>

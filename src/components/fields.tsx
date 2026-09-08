@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 export type FieldType =
   | 'text' | 'longtext' | 'richtext' | 'number' | 'currency' | 'percent'
   | 'select' | 'boolean' | 'date' | 'list' | 'link' | 'image' | 'file' | 'readonly'
-  | 'tel' | 'email' | 'url' | 'stars' | 'icon'
+  | 'tel' | 'email' | 'url' | 'stars' | 'icon' | 'slug'
 
 /**
  * What a record form checks before it lets a save through. Phone, email and
@@ -32,6 +32,7 @@ export function validateFields(fields: { key: string; label: string; type: Field
     if (f.required && (text === '' || (Array.isArray(v) && v.length === 0))) { out[f.key] = 'Wajib diisi'; continue }
     if (!text) continue
     if (f.max && text.length > f.max) { out[f.key] = `Maksimal ${f.max} karakter`; continue }
+    if (f.type === 'slug' && !SLUG_RULE.test(text)) out[f.key] = SLUG_ERROR
     if (f.type === 'stars' && !(Number(v) >= 1 && Number(v) <= 5)) out[f.key] = 'Pilih 1 sampai 5 bintang'
     if (f.type === 'tel' && !isValidPhone(text)) out[f.key] = PHONE_ERROR
     if (f.type === 'email' && !isValidEmail(text)) out[f.key] = EMAIL_ERROR
@@ -128,6 +129,14 @@ export function fieldText<T>(row: T, f: TableField<T>): string {
   }
 }
 
+/**
+ * What a slug may be: lower case words joined by single hyphens, nothing else.
+ * The same rule the API applies, checked here so a space or a capital is caught
+ * while it is typed rather than refused in English after a failed save.
+ */
+export const SLUG_RULE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+export const SLUG_ERROR = 'Gunakan huruf kecil, angka, dan tanda hubung (-) saja. Contoh: kegiatan-sosial'
+
 /** The address form of a name: lower case, words joined by hyphens. */
 export const toSlug = (v: string) =>
   v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -219,6 +228,7 @@ function Cell<T>({ row, field, primary }: { row: T; field: TableField<T>; primar
   }
 
   if (field.type === 'longtext' || field.type === 'richtext') return <span className="line-clamp-2 text-ink-600">{text}</span>
+  if (field.type === 'slug') return <span className="mono block truncate text-[12.5px] text-ink-600">{text}</span>
   if (field.type === 'link') return <span className="mono block truncate text-[12.5px] text-ink-600">{text}</span>
   return <span className={cn('block truncate', isNumeric(field.type) && 'tnum whitespace-nowrap tabular-nums')}>{text}</span>
 }
