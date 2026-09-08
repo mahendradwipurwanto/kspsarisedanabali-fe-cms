@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, isLeadClosed, waLink, formatRupiah } from '@/contracts'
 import { api, download } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
+import { useConfirm } from '@/components/confirm'
 import { PageHeader, Spinner, Empty, Button, Modal, Field, Alert, inputCls, selectCls, fmtDateTime } from '@/components/ui'
 import { DataTable } from '@/components/DataTable'
 import { buildColumns, defaultHidden, fieldText, type TableField } from '@/components/fields'
@@ -17,7 +18,8 @@ interface Lead {
   interest?: string | null; message?: string | null
   amount?: number | null; tenorMonths?: number | null; estimatedInstallment?: number | null
   purposes: string[]; source: string; status: string; createdAt: string; contactedAt?: string | null
-  productName?: string | null; branchName?: string | null; assignedToName?: string | null
+  productName?: string | null; branchName?: string | null
+  assignedToId?: string | null; assignedToName?: string | null
 }
 
 /** One entry of a lead's history: a status change, an assignment or a note. */
@@ -56,6 +58,7 @@ const FIELDS: TableField<Lead>[] = [
 
 function LeadsView() {
   const { can } = useAuth()
+  const confirm = useConfirm()
   const [rows, setRows] = useState<Lead[]>([])
   const [total, setTotal] = useState(0)
   const [status, setStatus] = useState('')
@@ -105,6 +108,24 @@ function LeadsView() {
     router.replace(pathname, { scroll: false })
   }, [deepLinkId, rows, router, pathname])
 
+  const remove = useCallback(async (row: Lead) => {
+    if (!(await confirm({
+      title: `Hapus data ${row.name}?`,
+      body: 'Data calon nasabah beserta riwayat tindak lanjutnya hilang dari daftar. Gunakan status "Ditolak" bila hanya ingin menandai bahwa pengajuannya tidak dilanjutkan.',
+      confirmLabel: 'Hapus data',
+      tone: 'danger',
+    }))) return
+    try {
+      await api.del(`/leads/${row.id}`)
+      setRows((list) => list.filter((r) => r.id !== row.id))
+      setTotal((n) => Math.max(0, n - 1))
+      setSelected((s) => (s?.id === row.id ? null : s))
+      toast.success('Data calon nasabah dihapus')
+    } catch (e) {
+      toast.error('Gagal menghapus', { description: (e as Error).message })
+    }
+  }, [confirm])
+
   const columns = useMemo(
     () => buildColumns<Lead>({
       fields: FIELDS,
@@ -132,8 +153,9 @@ function LeadsView() {
         },
         { label: 'Telepon', icon: <PhoneCall className="size-3.5" />, onSelect: (row) => { window.location.href = `tel:${row.phone}` } },
       ],
+      onDelete: can('leads:delete') ? (row) => void remove(row) : undefined,
     }),
-    [can],
+    [can, remove],
   )
 
   async function exportExcel() {
@@ -211,11 +233,25 @@ function LeadDetail({ lead, onClose, onSaved }: { lead: Lead | null; onClose: ()
   const { can } = useAuth()
   const [status, setStatus] = useState('')
   const [note, setNote] = useState('')
+  const [assignee, setAssignee] = useState('')
   const [busy, setBusy] = useState(false)
   const [timeline, setTimeline] = useState<LeadEvent[] | null>(null)
+  const [staff, setStaff] = useState<{ id: string; name: string }[]>([])
+
+  const mayAssign = can('leads:assign')
 
   const leadId = lead?.id
-  useEffect(() => { setStatus(lead?.status ?? ''); setNote('') }, [lead])
+  useEffect(() => { setStatus(lead?.status ?? ''); setNote(''); setAssignee(lead?.assignedToId ?? '') }, [lead])
+
+  // The picker's own list, not the staff directory: assigning is a marketing
+  // job and `users:read` is an administrative one, so the API serves names and
+  // ids from a route `leads:assign` alone can open. Loaded once per session.
+  useEffect(() => {
+    if (!mayAssign || staff.length) return
+    void api.get<{ data: { id: string; name: string }[] }>('/leads/assignees')
+      .then((r) => setStaff(r.data))
+      .catch(() => { /* the picker stays empty; everything else still saves */ })
+  }, [mayAssign, staff.length])
 
   useEffect(() => {
     if (!leadId) { setTimeline(null); return }
@@ -236,7 +272,15 @@ function LeadDetail({ lead, onClose, onSaved }: { lead: Lead | null; onClose: ()
   async function save() {
     setBusy(true)
     try {
-      await api.patch(`/leads/${lead!.id}`, { status, note: note || undefined })
+      // `assignedToId` is only sent when it actually changed: the API refuses
+      // the field to anyone without `leads:assign`, so including it unchanged
+      // would fail a save that was only ever about the status.
+      const changedAssignee = mayAssign && assignee !== (lead!.assignedToId ?? '')
+      await api.patch(`/leads/${lead!.id}`, {
+        status,
+        note: note || undefined,
+        ...(changedAssignee ? { assignedToId: assignee || null } : {}),
+      })
       toast.success('Tindak lanjut tersimpan')
       onSaved()
     } catch (e) {
@@ -306,6 +350,14 @@ function LeadDetail({ lead, onClose, onSaved }: { lead: Lead | null; onClose: ()
               {LEAD_STATUSES.map((s) => <option key={s} value={s}>{LEAD_STATUS_LABELS[s]}</option>)}
             </select>
           </Field>
+          {mayAssign ? (
+            <Field label="Ditugaskan ke" hint="Petugas yang bertanggung jawab menghubungi calon nasabah ini. Perubahannya tercatat di riwayat.">
+              <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className={selectCls}>
+                <option value="">Belum ditugaskan</option>
+                {staff.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </Field>
+          ) : null}
           <Field label="Catatan tindak lanjut" hint="Tersimpan di riwayat di atas, lengkap dengan nama dan waktunya. Contoh: sudah dihubungi, minta dihubungi kembali besok.">
             <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} />
           </Field>
