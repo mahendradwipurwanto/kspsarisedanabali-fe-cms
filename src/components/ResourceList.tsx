@@ -19,7 +19,7 @@ import { buildColumns, csvFromRows, defaultHidden, fieldText, type FieldOption, 
  */
 export function ResourceList<T extends { id: string }>({
   title, subtitle, endpoint, viewKey, fields: rawFields, writePermission, emptyBody, emptyIcon,
-  transformOut, canCreate = true, canDelete = true, recordTitle, panelNote, headerAction,
+  transformOut, canCreate = true, canDelete = true, deletePermission, recordTitle, panelNote, headerAction,
 }: {
   title: string
   subtitle: string
@@ -27,11 +27,22 @@ export function ResourceList<T extends { id: string }>({
   /** localStorage key for column visibility. */
   viewKey: string
   fields: TableField<T>[]
-  writePermission: string
+  /** One permission, or several of which any will do — as `can` and the API both read it. */
+  writePermission: string | string[]
   emptyBody: string
   emptyIcon?: ReactNode
   transformOut?: (values: Record<string, unknown>) => Record<string, unknown>
   canCreate?: boolean
+  /**
+   * The permission the API asks for before it will delete one of these.
+   *
+   * Left out, deleting is assumed to need the same authority as writing, which
+   * is what the generic API route falls back to. Naming it matters where the
+   * API is stricter: Berita and Produk have their own delete permission, and a
+   * role holding only `posts:write` was being shown a Hapus button that came
+   * back 403 — the console promising something the API had already refused.
+   */
+  deletePermission?: string | string[]
   canDelete?: boolean
   recordTitle?: (row: T) => string
   /**
@@ -44,7 +55,9 @@ export function ResourceList<T extends { id: string }>({
 }) {
   const { can } = useAuth()
   const confirm = useConfirm()
-  const canWrite = can(writePermission)
+  const list = (p: string | string[]) => (Array.isArray(p) ? p : [p])
+  const canWrite = can(...list(writePermission))
+  const mayDelete = canWrite && canDelete && can(...list(deletePermission ?? writePermission))
 
   const [rows, setRows] = useState<T[]>([])
   const [loading, setLoading] = useState(true)
@@ -115,10 +128,10 @@ export function ResourceList<T extends { id: string }>({
       fields,
       canWrite,
       onEdit: openRow,
-      onDelete: canWrite && canDelete ? (row) => void removeRow(row) : undefined,
+      onDelete: mayDelete ? (row) => void removeRow(row) : undefined,
       editLabel: canWrite ? 'Ubah' : 'Lihat',
     }),
-    [fields, canWrite, canDelete, openRow, removeRow],
+    [fields, canWrite, mayDelete, openRow, removeRow],
   )
 
   async function save() {
@@ -188,7 +201,7 @@ export function ResourceList<T extends { id: string }>({
         canWrite={canWrite}
         onCreate={canCreate ? openNew : undefined}
         createLabel={`${title} baru`}
-        onDeleteMany={canWrite && canDelete ? deleteMany : undefined}
+        onDeleteMany={mayDelete ? deleteMany : undefined}
         onExport={rows.length ? exportCsv : undefined}
         onRowClick={openRow}
         emptyState={
@@ -208,7 +221,7 @@ export function ResourceList<T extends { id: string }>({
         values={record?.values ?? {}}
         onChange={(values) => setRecord((r) => (r ? { ...r, values } : r))}
         onSave={() => void save()}
-        onDelete={canWrite && canDelete && record?.row ? () => { const row = record.row!; setRecord(null); void removeRow(row) } : undefined}
+        onDelete={mayDelete && record?.row ? () => { const row = record.row!; setRecord(null); void removeRow(row) } : undefined}
         title={record?.row ? (recordTitle?.(record.row) ?? `Ubah ${title.toLowerCase()}`) : `${title} baru`}
         subtitle={record?.row ? `id ${record.row.id}` : undefined}
         busy={saving}

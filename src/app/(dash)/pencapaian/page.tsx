@@ -26,7 +26,7 @@ export default function StatsPage() {
       subtitle="Angka pokok koperasi: aset, anggota, SHU, dan sejenisnya. Dipakai blok Pencapaian Koperasi di beranda dan halaman Laporan Keuangan."
       endpoint="/stats"
       viewKey="pencapaian"
-      writePermission="settings:manage"
+      writePermission={['stats:write', 'settings:manage']}
       emptyIcon={<TrendingUp className="size-5" />}
       emptyBody="Tambahkan angka pencapaian agar tampil di beranda dan halaman laporan."
       fields={FIELDS}

@@ -2,7 +2,7 @@
 
 import { Package } from 'lucide-react'
 import { ResourceList, type TableField } from '@/components/ResourceList'
-import { mediaSrc } from '@/lib/api'
+import { mediaThumb } from '@/lib/api'
 
 interface Product {
   id: string; name: string; slug: string; category: string; tagline?: string | null
@@ -63,12 +63,13 @@ export default function ProductsPage() {
       endpoint="/products"
       viewKey="produk"
       writePermission="products:write"
+      deletePermission="products:delete"
       emptyIcon={<Package className="size-5" />}
       emptyBody="Tambahkan produk simpanan atau pinjaman agar tampil di website."
       fields={FIELDS.map((f) => (f.key === 'image' ? { ...f, render: (r: Product) => (
         r.image
           // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={mediaSrc(r.image)} alt="" className="size-7 rounded-[4px] border border-line object-cover" />
+          ? <img src={mediaThumb(r.image, 28)} alt="" className="size-7 rounded-[4px] border border-line object-cover" />
           : <span className="text-ink-300">—</span>
       ) } : f))}
       transformOut={transformOut}

@@ -65,6 +65,7 @@ export default function PostsPage() {
       endpoint="/posts"
       viewKey="berita"
       writePermission="posts:write"
+      deletePermission="posts:delete"
       emptyIcon={<Newspaper className="size-5" />}
       emptyBody="Tulis berita pertama agar pengunjung melihat aktivitas koperasi."
       fields={FIELDS}
