@@ -93,7 +93,11 @@ export default function SeoSettingsPage() {
         action={<Button variant="dark" onClick={() => void s.save(GROUPS)} loading={s.saving} disabled={!s.dirty}>Simpan perubahan</Button>}
       />
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+      {/* 6 : 4. Both tracks are minmax(0, …): a grid track sized by content
+          alone refuses to shrink below it, which is how a long summary value
+          pushed the right-hand card off the edge and gave the whole page a
+          horizontal scrollbar. */}
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,6fr)_minmax(0,4fr)]">
         <div className="grid min-w-0 gap-5">
           <Card title="Bawaan mesin pencari">
             <div className="grid gap-4">
@@ -294,10 +298,13 @@ export default function SeoSettingsPage() {
           </Card>
         </div>
 
-        <div className="grid h-fit min-w-0 gap-5 xl:sticky xl:top-20">
+        <div className="grid h-fit min-w-0 gap-5 [&>*]:min-w-0 xl:sticky xl:top-20">
           <PreviewCard title="Tampilan di Google" description="Untuk halaman yang memakai nilai bawaan.">
             <div className="rounded-[var(--radius-tile)] border border-line bg-white p-3.5">
-              <p className="flex items-center gap-2 text-[11.5px] text-ink-500"><span className="grid size-5 place-items-center rounded-full bg-green-600 text-[9px] font-bold text-white">S</span>{LP.replace(/^https?:\/\//, '')}</p>
+              <p className="flex min-w-0 items-center gap-2 text-[11.5px] text-ink-500">
+                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-green-600 text-[9px] font-bold text-white">S</span>
+                <span className="truncate">{LP.replace(/^https?:\/\//, '')}</span>
+              </p>
               <p className="mt-1.5 truncate text-[16px] text-[#1a0dab]">{seo.defaultTitle || 'Judul bawaan belum diisi'}</p>
               <p className="mt-1 line-clamp-2 text-[12.5px] leading-relaxed text-ink-600">{seo.defaultDescription || 'Deskripsi bawaan belum diisi. Google akan memilih kalimat acak dari halaman.'}</p>
             </div>
@@ -328,8 +335,11 @@ export default function SeoSettingsPage() {
 function Summary({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-line pb-1.5 last:border-0">
-      <dt className="text-ink-500">{label}</dt>
-      <dd className={`mono text-right text-[12px] font-semibold ${warn ? 'text-gold-700' : 'text-ink-900'}`}>{value}</dd>
+      <dt className="shrink-0 text-ink-500">{label}</dt>
+      {/* `break-words` rather than a truncation: "FinancialService" and a
+          container id are the answer, not a decoration, and an ellipsis would
+          hide the half that identifies which one it is. */}
+      <dd className={`mono min-w-0 break-words text-right text-[12px] font-semibold ${warn ? 'text-gold-700' : 'text-ink-900'}`} title={value}>{value}</dd>
     </div>
   )
 }
