@@ -1,7 +1,7 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Users, MessageCircle, PhoneCall, Pencil, Eye, Ban, History } from 'lucide-react'
 import { toast } from 'sonner'
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, isLeadClosed, waLink, formatRupiah } from '@/contracts'
@@ -63,7 +63,10 @@ function LeadsView() {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Lead | null>(null)
   const params = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
   const deepLinkId = params.get('lead')
+  const opened = useRef<string | null>(null)
 
   // The status filter runs on the server; search, sort and paging run here over
   // the loaded page, which keeps the table instant for the volumes this gets.
@@ -84,11 +87,23 @@ function LeadsView() {
 
   useEffect(() => { void load() }, [load])
 
+  /**
+   * `?lead=<id>` opens that record once, then the parameter is dropped.
+   *
+   * It used to stay in the address bar, and the effect reopened the sheet the
+   * instant closing it set `selected` back to null — the record could not be
+   * dismissed at all without editing the URL by hand. Consuming the parameter
+   * makes the deep link a one-time instruction rather than a standing one.
+   */
   useEffect(() => {
-    if (!deepLinkId || selected) return
+    if (!deepLinkId) { opened.current = null; return }
+    if (opened.current === deepLinkId) return
     const match = rows.find((r) => r.id === deepLinkId)
-    if (match) setSelected(match)
-  }, [deepLinkId, rows, selected])
+    if (!match) return
+    opened.current = deepLinkId
+    setSelected(match)
+    router.replace(pathname, { scroll: false })
+  }, [deepLinkId, rows, router, pathname])
 
   const columns = useMemo(
     () => buildColumns<Lead>({
