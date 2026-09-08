@@ -19,7 +19,8 @@ import { buildColumns, csvFromRows, defaultHidden, fieldText, type FieldOption, 
  */
 export function ResourceList<T extends { id: string }>({
   title, subtitle, endpoint, viewKey, fields: rawFields, writePermission, emptyBody, emptyIcon,
-  transformOut, canCreate = true, canDelete = true, deletePermission, recordTitle, panelNote, headerAction,
+  transformOut, canCreate = true, canDelete = true, deletePermission, canDeleteRow, confirmDelete,
+  recordTitle, panelNote, headerAction,
 }: {
   title: string
   subtitle: string
@@ -44,6 +45,14 @@ export function ResourceList<T extends { id: string }>({
    */
   deletePermission?: string | string[]
   canDelete?: boolean
+  /**
+   * Rows this reader may not delete, whatever their permission — the account
+   * they are signed in as, a locked record. The API refuses these anyway; this
+   * keeps the console from offering something it knows will come back 400.
+   */
+  canDeleteRow?: (row: T) => boolean
+  /** Replaces the generic confirmation, for a delete that does something particular. */
+  confirmDelete?: (row: T) => { title: string; body: string; confirmLabel: string }
   recordTitle?: (row: T) => string
   /**
    * Shown at the foot of the record panel. A function is given the values
@@ -113,7 +122,12 @@ export function ResourceList<T extends { id: string }>({
   const openRow = useCallback((row: T) => { setRecord({ row, values: recordValues(fields, row) }) }, [fields])
 
   const removeRow = useCallback(async (row: T) => {
-    if (!(await confirm({ title: `Hapus ${recordTitle?.(row) ?? 'data ini'}?`, body: 'Data yang dihapus tidak bisa dikembalikan.', confirmLabel: 'Hapus', tone: 'danger' }))) return
+    const ask = confirmDelete?.(row) ?? {
+      title: `Hapus ${recordTitle?.(row) ?? 'data ini'}?`,
+      body: 'Data yang dihapus tidak bisa dikembalikan.',
+      confirmLabel: 'Hapus',
+    }
+    if (!(await confirm({ ...ask, tone: 'danger' }))) return
     try {
       await api.del(`${endpoint}/${row.id}`)
       setRows((list) => list.filter((r) => r.id !== row.id))
@@ -121,7 +135,7 @@ export function ResourceList<T extends { id: string }>({
     } catch (e) {
       toast.error('Gagal menghapus', { description: (e as Error).message })
     }
-  }, [endpoint, recordTitle, confirm])
+  }, [endpoint, recordTitle, confirm, confirmDelete])
 
   const columns = useMemo(
     () => buildColumns<T>({
@@ -129,9 +143,10 @@ export function ResourceList<T extends { id: string }>({
       canWrite,
       onEdit: openRow,
       onDelete: mayDelete ? (row) => void removeRow(row) : undefined,
+      deleteHidden: canDeleteRow ? (row) => !canDeleteRow(row) : undefined,
       editLabel: canWrite ? 'Ubah' : 'Lihat',
     }),
-    [fields, canWrite, mayDelete, openRow, removeRow],
+    [fields, canWrite, mayDelete, canDeleteRow, openRow, removeRow],
   )
 
   async function save() {
@@ -164,8 +179,21 @@ export function ResourceList<T extends { id: string }>({
     }
   }
 
-  async function deleteMany(selected: T[]) {
-    if (!(await confirm({ title: `Hapus ${selected.length} data terpilih?`, body: 'Semua data yang dipilih akan dihapus sekaligus dan tidak bisa dikembalikan.', confirmLabel: `Hapus ${selected.length} data`, tone: 'danger' }))) return
+  async function deleteMany(chosen: T[]) {
+    // Rows the reader may not delete are dropped before anything is asked, so
+    // the count in the confirmation is the count that will actually go.
+    const selected = canDeleteRow ? chosen.filter(canDeleteRow) : chosen
+    const skipped = chosen.length - selected.length
+    if (!selected.length) {
+      toast.error('Tidak ada data terpilih yang bisa dihapus')
+      return
+    }
+    if (!(await confirm({
+      title: `Hapus ${selected.length} data terpilih?`,
+      body: `Semua data yang dipilih akan dihapus sekaligus dan tidak bisa dikembalikan.${skipped ? ` ${skipped} data dilewati karena tidak bisa dihapus.` : ''}`,
+      confirmLabel: `Hapus ${selected.length} data`,
+      tone: 'danger',
+    }))) return
     const results = await Promise.allSettled(selected.map((row) => api.del(`${endpoint}/${row.id}`)))
     const failed = results.filter((r) => r.status === 'rejected').length
     await load()

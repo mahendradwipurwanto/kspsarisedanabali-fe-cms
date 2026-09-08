@@ -257,11 +257,13 @@ export interface RowAction<T> {
  * checkbox, one column per field, and a row-actions menu at the end.
  */
 export function buildColumns<T extends { id: string }>({
-  fields, onEdit, onDelete, extraActions, selectable = true, editLabel = 'Ubah', canWrite,
+  fields, onEdit, onDelete, deleteHidden, extraActions, selectable = true, editLabel = 'Ubah', canWrite,
 }: {
   fields: TableField<T>[]
   onEdit?: (row: T) => void
   onDelete?: (row: T) => void
+  /** Rows the delete action must not be offered on, even though the reader may delete. */
+  deleteHidden?: (row: T) => boolean
   extraActions?: RowAction<T>[]
   selectable?: boolean
   editLabel?: string
@@ -317,7 +319,9 @@ export function buildColumns<T extends { id: string }>({
   const actions: RowAction<T>[] = [
     ...(onEdit ? [{ label: editLabel, icon: <Pencil className="size-3.5" />, onSelect: onEdit }] : []),
     ...(extraActions ?? []),
-    ...(onDelete && canWrite ? [{ label: 'Hapus', icon: <Trash2 className="size-3.5" />, onSelect: onDelete, variant: 'destructive' as const }] : []),
+    ...(onDelete && canWrite
+      ? [{ label: 'Hapus', icon: <Trash2 className="size-3.5" />, onSelect: onDelete, variant: 'destructive' as const, hidden: deleteHidden }]
+      : []),
   ]
 
   if (actions.length) {

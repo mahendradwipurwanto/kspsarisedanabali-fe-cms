@@ -2,6 +2,7 @@
 
 import { UserCog } from 'lucide-react'
 import { ResourceList, Pill, type TableField } from '@/components/ResourceList'
+import { useAuth } from '@/lib/auth-context'
 import { fmtRelative } from '@/components/ui'
 
 interface User {
@@ -30,6 +31,8 @@ const FIELDS: TableField<User>[] = [
 ]
 
 export default function UsersPage() {
+  const { user } = useAuth()
+
   return (
     <ResourceList<User>
       title="Pengguna"
@@ -37,11 +40,21 @@ export default function UsersPage() {
       endpoint="/users"
       viewKey="pengguna"
       writePermission="users:write"
+      deletePermission="users:delete"
       emptyIcon={<UserCog className="size-5" />}
       emptyBody="Tambahkan pengguna agar tim koperasi bisa mengelola website."
       fields={FIELDS}
       canCreate={false}
-      canDelete={false}
+      // Never on your own account: the API refuses it, and offering it would be
+      // offering someone the chance to lock themselves out. The other refusal —
+      // the last remaining Super Admin — is not knowable from this row, so it
+      // stays where it can be checked properly and comes back as an error.
+      canDeleteRow={(row) => row.id !== user?.sub}
+      confirmDelete={(row) => ({
+        title: `Hapus akses ${row.name}?`,
+        body: `${row.name} tidak bisa masuk ke konsol lagi dan sesinya yang sedang berjalan langsung berakhir. Catatan aktivitas yang pernah dibuatnya tetap tersimpan. Untuk menonaktifkan sementara, matikan saja tombol Aktif.`,
+        confirmLabel: 'Hapus akses',
+      })}
       recordTitle={(r) => r.name}
       panelNote={
         <p className="text-[12px] leading-relaxed text-ink-500">
