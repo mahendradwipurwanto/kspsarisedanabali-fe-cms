@@ -9,7 +9,7 @@ import { RichTextEditor } from './RichTextEditor'
 import { Counter, IconGrid } from './icons'
 import { toast } from 'sonner'
 import { uploadDocument } from '@/lib/api'
-import { mediaSrc } from '@/lib/api'
+import { mediaThumb } from '@/lib/api'
 import { fieldValue, fileLabel, isNumeric, toSlug, validateFields, type TableField } from './fields'
 import { cleanPhoneInput } from '@/contracts'
 import { cn } from '@/lib/utils'
@@ -21,7 +21,7 @@ function ImageInput({ value, onChange, disabled }: { value: string; onChange: (v
       {value ? (
         <div className="flex items-center gap-3 rounded-[var(--radius-input)] border border-line bg-white p-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={mediaSrc(value)} alt="" className="size-14 shrink-0 rounded-[6px] bg-paper object-cover" />
+          <img src={mediaThumb(value, 56)} alt="" className="size-14 shrink-0 rounded-[6px] bg-paper object-cover" />
           {/* The name, not the whole storage path, and wrapped over two lines
               rather than cut off — a cover image is recognised by its name. */}
           <span className="mono min-w-0 flex-1 break-all text-[11.5px] leading-snug text-ink-500 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden" title={value}>

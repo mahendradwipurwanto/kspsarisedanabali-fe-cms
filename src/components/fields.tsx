@@ -9,7 +9,7 @@ import { Checkbox } from './ui/checkbox'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { SortHeader } from './DataTable'
 import { ICONS } from './icons'
-import { mediaSrc } from '@/lib/api'
+import { mediaThumb } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
 /* ─────────────────────────────── field model ────────────────────────────── */
@@ -166,7 +166,7 @@ function Cell<T>({ row, field, primary }: { row: T; field: TableField<T>; primar
     const src = String(v ?? '')
     return src ? (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={mediaSrc(src)} alt="" className="size-9 rounded-[6px] border border-line object-cover" loading="lazy" />
+      <img src={mediaThumb(src, 36)} alt="" className="size-9 rounded-[6px] border border-line object-cover" loading="lazy" />
     ) : (
       <span className="grid size-9 place-items-center rounded-[6px] border border-dashed border-line-strong text-ink-300"><ImageIcon className="size-4" /></span>
     )

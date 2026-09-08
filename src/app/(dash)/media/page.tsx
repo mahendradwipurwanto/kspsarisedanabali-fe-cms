@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ImageOff, LayoutGrid, Rows3, Upload, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
-import { api, uploadFile, uploadProblem, mediaSrc, ApiError, MAX_IMAGE_BYTES } from '@/lib/api'
+import { api, uploadFile, uploadProblem, mediaSrc, mediaThumb, ApiError, MAX_IMAGE_BYTES } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { Card, PageHeader, Spinner, Empty, Button, Alert, inputCls, Badge, Segmented } from '@/components/ui'
 import { useConfirm } from '@/components/confirm'
@@ -26,7 +26,7 @@ const FIELDS: TableField<MediaItem>[] = [
     key: 'url', label: 'Gambar', type: 'image', width: 90, readOnly: true, panelOnly: false,
     render: (r) => (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={mediaSrc(r.url)} alt={r.alt ?? ''} className="size-10 rounded-[6px] border border-line object-cover" loading="lazy" />
+      <img src={mediaThumb(r.url, 40)} alt={r.alt ?? ''} className="size-10 rounded-[6px] border border-line object-cover" loading="lazy" />
     ),
   },
   {
@@ -200,7 +200,7 @@ export default function MediaPage() {
             <li key={m.id}>
               <button type="button" onClick={() => openRow(m)} className="surface block w-full overflow-hidden text-left transition-colors hover:border-ink-900">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={mediaSrc(m.url)} alt={m.alt ?? ''} className="aspect-[4/3] w-full bg-paper object-cover" loading="lazy" />
+                <img src={mediaThumb(m.url, 192)} alt={m.alt ?? ''} className="aspect-[4/3] w-full bg-paper object-cover" loading="lazy" />
                 <span className="block p-3">
                   <span className="block truncate text-[12.5px] font-semibold text-ink-800">{m.filename}</span>
                   <span className="mt-1 block truncate text-[11.5px] text-ink-500">{m.alt || 'Belum ada keterangan'}</span>

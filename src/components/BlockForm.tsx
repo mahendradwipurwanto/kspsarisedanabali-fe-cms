@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronRight, ChevronUp, GripVertical, Plus, Trash2, ImagePlus, X, Copy,
 } from 'lucide-react'
 import { TRACKING_KEYS, type FieldDef, type FieldMap } from '@/contracts'
-import { api, mediaSrc } from '@/lib/api'
+import { api, mediaThumb } from '@/lib/api'
 import { Button, IconButton, inputCls, selectCls, Field, Switch } from './ui'
 import { MediaPicker } from './MediaPicker'
 import { LinkInput, linkLabel, useLinkOptions } from './link-options'
@@ -250,7 +250,7 @@ function ImageField({
       {value ? (
         <div className="flex items-center gap-3 rounded-[var(--radius-input)] border border-line bg-white p-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={mediaSrc(value)} alt="" className="size-16 shrink-0 rounded-[6px] bg-paper object-cover" />
+          <img src={mediaThumb(value, 64)} alt="" className="size-16 shrink-0 rounded-[6px] bg-paper object-cover" />
           {/* The name, not the whole storage path: printing the folder and the
               ULID left nothing to recognise the picture by, and its width was
               what pushed this card past its own edge. */}

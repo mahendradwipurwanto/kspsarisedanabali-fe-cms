@@ -320,3 +320,28 @@ const LP_BASE = LP_URL
  */
 export const mediaSrc = (value: string | null | undefined) =>
   resolveMedia(value, { proxyBase: LP_BASE, publicBase: process.env.NEXT_PUBLIC_STORAGE_PUBLIC_URL })
+
+/**
+ * The same image, resized for a preview.
+ *
+ * A cell in the media table is forty pixels wide and was being filled with the
+ * original upload — a 2 MB photograph shrunk by the browser, twenty of them at
+ * once on one screen. That is what made the library slow to open and, when the
+ * proxy buckled under the twenty parallel downloads, left thumbnails broken
+ * until someone reloaded them by hand.
+ *
+ * The website's image optimiser already resizes anything on its own origin, so
+ * a preview asks it for the width it is actually drawn at. `width` is the CSS
+ * width; the value sent is doubled and rounded to one of Next's configured
+ * sizes so the picture stays sharp on a retina screen.
+ *
+ * Falls back to the full image for anything the optimiser cannot reach — an
+ * absolute URL on the storage host, or a bucket serving its own public files.
+ */
+export function mediaThumb(value: string | null | undefined, width: number): string {
+  const src = mediaSrc(value)
+  if (!src.startsWith(LP_BASE) || !src.includes('/api/media/')) return src
+  const path = src.slice(LP_BASE.length)
+  const w = [16, 32, 48, 64, 96, 128, 256, 384].find((n) => n >= width * 2) ?? 384
+  return `${LP_BASE}/_next/image?url=${encodeURIComponent(path)}&w=${w}&q=75`
+}
