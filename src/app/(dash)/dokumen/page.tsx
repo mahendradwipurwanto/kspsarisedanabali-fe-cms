@@ -5,7 +5,7 @@ import { ResourceList, type TableField } from '@/components/ResourceList'
 
 interface DocumentItem {
   id: string; title: string; category: string; year?: number | null
-  fileKey: string; fileSize?: number | null; isPublic: boolean; sortOrder: number
+  fileKey: string; fileSize?: number | null; coverImage?: string | null; isPublic: boolean; sortOrder: number
 }
 
 const FIELDS: TableField<DocumentItem>[] = [
@@ -22,6 +22,10 @@ const FIELDS: TableField<DocumentItem>[] = [
   // A year, not a quantity: 2026 rather than 2.026.
   { key: 'year', label: 'Tahun buku', type: 'number', width: 120, plain: true },
   { key: 'fileKey', label: 'Berkas', type: 'file', width: 260, required: true, hint: 'PDF atau DOC. Diunggah langsung ke penyimpanan koperasi.' },
+  {
+    key: 'coverImage', label: 'Sampul', type: 'image', width: 80,
+    hint: 'Opsional. Gambar sampul laporan, potret (rasio 3:4, misalnya 600×800 piksel). Tanpa sampul, kartu di website menampilkan penanda koperasi.',
+  },
   { key: 'isPublic', label: 'Tampil di web', type: 'boolean', width: 130, defaultValue: true },
   { key: 'sortOrder', label: 'Urutan', type: 'number', width: 100, hiddenByDefault: true, defaultValue: 0 },
 ]
