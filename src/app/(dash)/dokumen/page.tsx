@@ -11,13 +11,11 @@ interface DocumentItem {
 const FIELDS: TableField<DocumentItem>[] = [
   { key: 'title', label: 'Judul dokumen', type: 'text', required: true, secondary: (r) => (r.year ? `Tahun buku ${r.year}` : '') },
   {
-    key: 'category', label: 'Jenis', type: 'select', width: 170, required: true,
-    options: [
-      { value: 'laporan', label: 'Laporan tahunan', variant: 'success' },
-      { value: 'keuangan', label: 'Laporan keuangan', variant: 'success' },
-      { value: 'legalitas', label: 'Legalitas & perizinan', variant: 'secondary' },
-      { value: 'lainnya', label: 'Lainnya', variant: 'secondary' },
-    ],
+    key: 'category', label: 'Jenis', type: 'select', width: 190, required: true,
+    // The kinds are rows, not a list written here: a document stores the
+    // kind's slug, and the picker offers whatever Kategori Dokumen holds.
+    optionsEndpoint: '/document-categories', optionValue: 'slug',
+    hint: 'Menentukan rak dan tab tempat dokumen ini tampil. Jenis baru ditambahkan di menu Kategori Dokumen.',
   },
   // A year, not a quantity: 2026 rather than 2.026.
   { key: 'year', label: 'Tahun buku', type: 'number', width: 120, plain: true },

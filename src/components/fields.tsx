@@ -69,6 +69,8 @@ export interface TableField<T = Record<string, unknown>> {
    * straight away rather than after a code change.
    */
   optionsEndpoint?: string
+  /** Which property of a loaded row becomes the stored value. `id` unless the record keeps a slug. */
+  optionValue?: string
   /** Prepended to the loaded options, for "no category" and the like. */
   emptyOption?: FieldOption
   required?: boolean

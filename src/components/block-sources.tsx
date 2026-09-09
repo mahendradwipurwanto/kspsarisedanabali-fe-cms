@@ -23,7 +23,7 @@ const SOURCES: Record<string, { label: string; href: string }[]> = {
   branch_contact_strip: [{ label: 'Kantor', href: '/kantor' }],
   stats_counter: [{ label: 'Pencapaian', href: '/pencapaian' }],
   testimonial_slider: [{ label: 'Testimoni', href: '/testimoni' }],
-  document_list: [{ label: 'Dokumen', href: '/dokumen' }],
+  document_list: [{ label: 'Dokumen', href: '/dokumen' }, { label: 'Kategori Dokumen', href: '/kategori-dokumen' }],
   faq_index: [{ label: 'Tanya Jawab', href: '/tanya-jawab' }],
   job_list: [{ label: 'Lowongan', href: '/lowongan' }],
   org_chart: [{ label: 'Legalitas & Organisasi', href: '/pengaturan/profil' }],

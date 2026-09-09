@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   LayoutDashboard, Users, FileText, Newspaper, Image, Package, MapPin, Settings2,
   ShieldCheck, UserCog, PanelTop, PanelBottom, Search, Landmark, Building2,
-  FileDown, TrendingUp, Quote, HelpCircle, Briefcase, FileUser, Tags, Signpost, Smartphone, KeyRound, MessageSquareHeart,
+  FileDown, TrendingUp, Quote, HelpCircle, Briefcase, FileUser, FolderTree, Tags, Signpost, Smartphone, KeyRound, MessageSquareHeart,
 } from 'lucide-react'
 
 export interface NavItem { label: string; href: string; icon: LucideIcon; group: string; perms: string[]; exact?: boolean }
@@ -26,6 +26,7 @@ export const NAV: NavItem[] = [
   { label: 'Kantor', href: '/kantor', icon: MapPin, group: 'Konten', perms: ['branches:read'] },
   // The records the page blocks draw from, each one edited on its own screen.
   { label: 'Dokumen', href: '/dokumen', icon: FileDown, group: 'Konten', perms: ['pages:read'] },
+  { label: 'Kategori Dokumen', href: '/kategori-dokumen', icon: FolderTree, group: 'Konten', perms: ['pages:read'] },
   { label: 'Pencapaian', href: '/pencapaian', icon: TrendingUp, group: 'Konten', perms: ['pages:read'] },
   { label: 'Testimoni', href: '/testimoni', icon: Quote, group: 'Konten', perms: ['pages:read'] },
   { label: 'Tanya Jawab', href: '/tanya-jawab', icon: HelpCircle, group: 'Konten', perms: ['pages:read'] },

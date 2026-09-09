@@ -91,7 +91,7 @@ export function ResourceList<T extends { id: string }>({
   // once per screen; a failure leaves the select empty rather than the screen
   // broken, and the record still saves without that field.
   const [linked, setLinked] = useState<Record<string, FieldOption[]>>({})
-  const linkedKey = rawFields.filter((f) => f.optionsEndpoint).map((f) => `${f.key}:${f.optionsEndpoint}`).join('|')
+  const linkedKey = rawFields.filter((f) => f.optionsEndpoint).map((f) => `${f.key}:${f.optionValue ?? 'id'}:${f.optionsEndpoint}`).join('|')
 
   useEffect(() => {
     if (!linkedKey) return
@@ -99,10 +99,10 @@ export function ResourceList<T extends { id: string }>({
     void (async () => {
       const entries = await Promise.all(
         linkedKey.split('|').map(async (pair) => {
-          const [key, endpoint] = [pair.slice(0, pair.indexOf(':')), pair.slice(pair.indexOf(':') + 1)]
+          const [key, valueKey, endpoint] = [pair.slice(0, pair.indexOf(':')), pair.split(':')[1]!, pair.slice(pair.indexOf(':', pair.indexOf(':') + 1) + 1)]
           try {
             const r = await api.get<{ data: Record<string, unknown>[] }>(`${endpoint}?limit=200`)
-            return [key, r.data.map((o) => ({ value: String(o.id), label: String(o.name ?? o.title ?? o.id) }))] as const
+            return [key, r.data.map((o) => ({ value: String(o[valueKey] ?? o.id), label: String(o.name ?? o.title ?? o.id) }))] as const
           } catch {
             return [key, [] as FieldOption[]] as const
           }

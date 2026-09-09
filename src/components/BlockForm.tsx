@@ -283,13 +283,16 @@ function ImageField({
 interface RefOption { id: string; label: string; hint?: string }
 const REF_CACHE = new Map<string, Promise<RefOption[]>>()
 
-function loadRefs(to: 'product' | 'post' | 'branch' | 'page'): Promise<RefOption[]> {
+function loadRefs(to: Extract<FieldDef, { kind: 'reference' }>['to']): Promise<RefOption[]> {
   if (!REF_CACHE.has(to)) {
     const map = {
       product: ['/products?limit=100', (r: { id: string; name: string; category?: string }) => ({ id: r.id, label: r.name, hint: r.category })],
       branch: ['/branches?limit=100', (r: { id: string; name: string; district?: string }) => ({ id: r.id, label: r.name, hint: r.district })],
       page: ['/pages?limit=100', (r: { id: string; title: string; slug: string }) => ({ id: r.id, label: r.title, hint: `/${r.slug === '/' ? '' : r.slug}` })],
       post: ['/posts?limit=100', (r: { id: string; title: string }) => ({ id: r.id, label: r.title })],
+      // Stored by slug, not id: it is what the website filters by and what
+      // every document already carries, so a kind can be renamed freely.
+      'document-category': ['/document-categories?limit=100', (r: { slug: string; name: string }) => ({ id: r.slug, label: r.name, hint: r.slug })],
     } as const
     const [path, pick] = map[to]
     REF_CACHE.set(to, api.get<{ data: never[] }>(path).then((r) => r.data.map(pick as (x: never) => RefOption)).catch(() => []))
@@ -297,7 +300,7 @@ function loadRefs(to: 'product' | 'post' | 'branch' | 'page'): Promise<RefOption
   return REF_CACHE.get(to)!
 }
 
-const REF_LABEL = { product: 'produk', post: 'berita', branch: 'kantor', page: 'halaman' }
+const REF_LABEL = { product: 'produk', post: 'berita', branch: 'kantor', page: 'halaman', 'document-category': 'jenis dokumen' }
 
 function ReferenceField({
   def, value, onChange, error,
