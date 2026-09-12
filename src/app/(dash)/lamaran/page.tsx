@@ -12,7 +12,7 @@ import {
   PageHeader, Spinner, Empty, Button, Modal, Field, Alert, Pill, selectCls, fmtDate, fmtDateTime,
 } from '@/components/ui'
 import { DataTable } from '@/components/DataTable'
-import { buildColumns, defaultHidden, type TableField } from '@/components/fields'
+import { buildColumns, defaultHidden, fieldText, type TableField } from '@/components/fields'
 
 interface Application {
   id: string
@@ -143,6 +143,12 @@ export default function ApplicationsPage() {
           storageKey="lamaran"
           onRowClick={setSelected}
           searchPlaceholder="Cari nama, email, atau posisi…"
+          // Every field, hidden columns included, so an email finds its row
+          // and a status is found by its label rather than its code.
+          globalFilterFn={(row, _id, value) => {
+            const q = String(value).toLowerCase()
+            return FIELDS.some((f) => fieldText(row.original, f).toLowerCase().includes(q))
+          }}
           initialVisibility={defaultHidden(FIELDS)}
         />
       )}

@@ -13,8 +13,8 @@ const FIELDS: TableField<Stat>[] = [
   { key: 'sortOrder', label: 'Urutan', type: 'number', width: 110, plain: true, defaultValue: 0 },
   { key: 'isActive', label: 'Tampil di web', type: 'boolean', width: 130, defaultValue: true },
   {
-    key: 'icon', label: 'Ikon', type: 'icon', width: 150, max: 40, hiddenByDefault: true,
-    hint: 'Tampil pada tata letak kartu. Tata letak “buku besar”, yang dipakai beranda dan Laporan Keuangan sekarang, hanya menampilkan angkanya.',
+    key: 'icon', label: 'Ikon', type: 'icon', width: 150, max: 40,
+    hint: 'Tampil di atas angka pada website, pada kedua tata letak blok Pencapaian Koperasi.',
   },
 ]
 

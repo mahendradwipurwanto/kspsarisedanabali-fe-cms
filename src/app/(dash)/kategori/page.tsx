@@ -30,6 +30,11 @@ export default function PostCategoriesPage() {
       emptyBody="Tambahkan kategori agar berita bisa dikelompokkan dan pembaca menemukan topik yang dicarinya."
       fields={FIELDS}
       recordTitle={(r) => r.name}
+      panelNote={
+        <p className="text-[12px] leading-relaxed text-ink-500">
+          Kategori yang masih dipakai berita tidak bisa dihapus — pindahkan beritanya ke kategori lain terlebih dahulu.
+        </p>
+      }
     />
   )
 }

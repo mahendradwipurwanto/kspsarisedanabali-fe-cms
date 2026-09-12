@@ -113,7 +113,10 @@ export function DataTable<T extends { id: string }>({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setInternalFilter,
-    globalFilterFn,
+    // Only override the library's default when a screen brings its own: a key
+    // set to undefined replaces the default with nothing, and TanStack then
+    // skips global filtering altogether — the Lamaran search box did nothing.
+    ...(globalFilterFn ? { globalFilterFn } : {}),
     getRowId: (row) => row.id,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),

@@ -15,6 +15,10 @@ const FIELDS: TableField<DocumentItem>[] = [
     // The kinds are rows, not a list written here: a document stores the
     // kind's slug, and the picker offers whatever Kategori Dokumen holds.
     optionsEndpoint: '/document-categories', optionValue: 'slug',
+    // A new document starts with no kind chosen: silently landing on the
+    // first kind filed reports on the wrong shelf. Required, so a blank
+    // choice is caught before the save.
+    emptyOption: { value: '', label: 'Pilih jenis…' },
     hint: 'Menentukan rak dan tab tempat dokumen ini tampil. Jenis baru ditambahkan di menu Kategori Dokumen.',
   },
   // A year, not a quantity: 2026 rather than 2.026.
